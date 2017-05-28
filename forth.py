@@ -38,38 +38,54 @@ def pop_RS():
 
 # Dictionary
 
+STATE = 0 # 0 means interpret mode
+
 dictionary = []
 
 index = None # way to keep track of the 'address' index - work around because using python
 
 PC = None
 
-here = None
+latest = None # will hold link address (index) for previous word once words added
+
+here = None # holds index of last added to dictionary (prob not necessary in python)
+# not using it now because using append instead
 
 def add_word(name, immediate_flag, code_pointer, data_field):
-    print('adding name to dict ', name)
-    global here
+    #print('adding name to dict ', name)
+    global latest
     dictionary.append(name)
-    dictionary.append(here)
-    placer_for_here = len(dictionary) - 1
+    dictionary.append(immediate_flag)
+    dictionary.append(latest)
+    #print('in add word:  name, len dict :', name, len(dictionary) )
+    placer_for_latest = len(dictionary) - 1 #  index of last cell added (holds link address to previous entry)
 
-    if code_pointer != None: # there is a link, this is not a composite word
+    if code_pointer != None: # tlatest is a link, this is not a composite word
         dictionary.append(code_pointer)
 
     else: # this is a composite word
-        dictionary.append(enter)
+        dictionary.append(enter) # enter will be code pointer for composite words
         for word in data_field:
             push(word)
             find()
-            pop()
+            found = pop()
+            #if found == 0:
+            #print('PROBLEM FINDING WORD - FIND PUSHED 0 TO STACK')
             link = pop()
+            #print('>>>>>>>>>>> adding word list, word in word list, link found: ', word, link)
+            #print('in add word, adding composite \n found word from word list: ', word, link)
             dictionary.append(link)
         dictionary.append(exit)
-    here = placer_for_here
+
+    latest = placer_for_latest
+
+    here = len(dictionary) - 1
+
 
 def print_dictionary():
-    for cell in dictionary:
-        print(cell)
+    pass
+    #for i, cell in enumerate(dictionary):
+    #    print(i, ': ', cell)
 
 # NATIVE DICTIONARY FUNCTIONS
 def dup():
@@ -85,9 +101,11 @@ def mul():
     next_word()
 
 def add():
+    #print('ADDING!!!')
     a = pop()
     b = pop()
     result = a + b
+    #print(a, b, result)
     push(result)
     next_word()
 
@@ -97,43 +115,38 @@ def exit():
     if PC != None:
         next_word()
 
-
 def enter():
-    print('#####in enter, PC  and index: ', PC, index, 'type pc', type(PC))
+    #print('#####in enter, PC  and index: ', PC, index, 'type pc', type(PC))
     global PC
     push_RS(PC)
     PC = index
-    print('#####in enter, PC  and index: ', PC, index, 'type pc', type(PC))
+    #print('#####in enter, PC  and index: ', PC, index, 'type pc', type(PC))
     next_word()
-
-
 
 def next_word():
     global PC
-    PC = PC + 1
-    push(PC)
-    execute()
-
+    if PC != None: # so that it only does anything if we r in a thread
+        # there must be a more elegant solution?!?!
+        PC = PC + 1
+        push(PC)
+        execute()
 
 def execute():
     tos = pop()
+    #print('in execute, tos  is ', tos, type(tos))
     point_to = None
 
     if not isinstance(dictionary[tos], int):
         point_to = tos
+        #print(' in not int tos, point to is : ', tos, point_to, type(point_to))
     else:
         point_to = dictionary[tos]
-
+        #print(' in else ptos, oint to is : ', tos, point_to, type(point_to))
     global index
     index = point_to
-
-    print('\n\n0000000000000000in execute, tos is ', tos)
-    print_stack()
-
     dictionary[point_to]()
 
-
-def word():
+def get_word():
     global input_stream
     new_word = ""
     while len(input_stream):
@@ -147,12 +160,19 @@ def word():
 
 def find():
     new_word = pop()
-    current_link_index = here
+    current_link_index = latest
     while current_link_index != None:
-        current_name = dictionary[current_link_index-1]
-        if current_name.strip() == new_word.strip():
+        current_name = dictionary[current_link_index-2]
+        #print('\n\n in find, looping through linked list')
+        #print('word to find, current name, current_link_index : ', new_word, current_name, current_link_index)
+        if current_name== new_word:
             push(current_link_index + 1)
-            push(1)
+            #print('FOUND: word and link to be sent for it: ', new_word, current_link_index+1)
+            #print_dictionary()
+            if dictionary[current_link_index-1] == 1:
+                push(-1)
+            else:
+                push(1)
             return
         current_link_index = dictionary[current_link_index]
     push(new_word)
@@ -163,20 +183,79 @@ def number():
     number = int(string)
     push(number)
 
-def interpret-word():
-    word()
+def interpret_word():
+    get_word()
     find()
     tos = pop()
-    if tos == 1:
+    if tos == 1 or tos is -1:
         execute()
     else:
         number()
+
+def ifdup():
+    top = stack[SP]
+    if top != 0:
+        push(top)
+    next_word()
+
+def comma():
+    tos = pop()
+    dictionary.append(tos)
+
+def set_interpret():
+    global STATE
+    STATE = 0
+
+def set_compile():
+    global STATE
+    STATE = 1
+
+def colon():
+    set_compile()
+    global latest
+    push(None)
+    comma()
+    push(0) # how can immediate flag be set to 0 for a dynamically added word?
+    comma()
+    push(latest)
+    comma()
+
+    placer_for_latest = len(dictionary) - 1 #  index of last cell added (holds link address to previous entry)
+    push(enter)
+    comma()
+
+    latest = placer_for_latest
+    here = len(dictionary) - 1
+
+
+def semicolon():
+    set_interpret()
+    #dictionary.append(exit)
+    push(exit)
+    comma()
+
+def compile_word():
+    get_word()
+    word = pop()
+    if dictionary[-4] == None:
+        dictionary[-4] = word
+    else:
+        push(word)
+        find()
+        found = pop()
+        if found == -1:
+            execute()
+        elif found == 1:
+            comma()
 
 def quit():
     global return_stack
     return_stack = []
     while len(input_stream):
-        interpret-word()
+        if STATE:
+            compile_word()
+        else:
+            interpret_word()
 
 
 
@@ -186,24 +265,12 @@ add_word('.S', 0, print_stack, [])
 add_word('DUP', 0, dup, [])
 add_word('*', 0, mul, [])
 add_word('+', 0, add, [])
-print('--------------------------------------------')
-print_dictionary()
-print('--------------------------------------------')
-add_word('SQUARED', 0, None, ['DUP', '*'])
-print('--------------------------------------------')
-print_dictionary()
-print('--------------------------------------------')
-
-add_word('CUBED', 0, None, ['DUP', 'SQUARED', '*'])
-add_word('TEST', 0, None, ['DUP', 'CUBED', '+'])
-print('--------------------------------------------')
-print_dictionary()
-print('--------------------------------------------')
-
+add_word(':', 1, colon, [])
+add_word(';', 1, semicolon, [])
 
 
 ### TESTS
-def test_stack():
+def test_add_words():
     push(1)
     push(2)
     push(3)
@@ -217,13 +284,13 @@ def test_stack():
 
 
 def test_linked_list():
-    print('test the linked list')
-    current = here
+    print('Test the linked list:')
+    current = latest
     print(current)
     while current != None:
         current = dictionary[current]
         print(current)
 
 
-input_stream = " 10 TEST .S "
+input_stream = ": TWICE DUP + DUP ; : SQUARED DUP * ; : CUBED DUP SQUARED * ; 2 CUBED 3 SQUARED 5 TWICE .S "
 quit()
