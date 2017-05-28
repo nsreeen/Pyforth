@@ -43,7 +43,7 @@ STATE = 0 # 0 means interpret mode
 dictionary = []
 
 index = None # way to keep track of the 'address' index - work around because using python
-
+index2 = None
 PC = None
 
 latest = None # will hold link address (index) for previous word once words added
@@ -60,7 +60,11 @@ def add_word(name, immediate_flag, code_pointer, data_field):
     #print('in add word:  name, len dict :', name, len(dictionary) )
     placer_for_latest = len(dictionary) - 1 #  index of last cell added (holds link address to previous entry)
 
-    if code_pointer != None: # tlatest is a link, this is not a composite word
+    if code_pointer == variable:
+        dictionary.append(variable)
+        dictionary.append(data_field)
+
+    elif code_pointer != None: # tlatest is a link, this is not a composite word
         dictionary.append(code_pointer)
 
     else: # this is a composite word
@@ -88,6 +92,9 @@ def print_dictionary():
     #    print(i, ': ', cell)
 
 # NATIVE DICTIONARY FUNCTIONS
+def variable():
+    push(index2-1)
+
 def dup():
     top = stack[SP]
     push(top)
@@ -101,13 +108,44 @@ def mul():
     next_word()
 
 def add():
-    #print('ADDING!!!')
     a = pop()
     b = pop()
     result = a + b
-    #print(a, b, result)
     push(result)
     next_word()
+
+def sub():
+    a = pop()
+    b = pop()
+    result = a - b
+    push(result)
+    next_word()
+
+def div():
+    a = pop()
+    b = pop()
+    result = a / b
+    push(result)
+    next_word()
+
+def equals():
+    a = pop()
+    b = pop()
+    if a == b:
+        push(1)
+    else:
+        push(-1)
+    next_word()
+
+def store():
+    address = pop()
+    contents = pop()
+    dictionary[address] = contents
+
+def fetch():
+    address = pop()
+    contents = dictionary[address]
+    push(contents)
 
 def exit():
     global PC
@@ -133,7 +171,8 @@ def next_word():
 
 def execute():
     tos = pop()
-    #print('in execute, tos  is ', tos, type(tos))
+    global index2
+    index2 = tos # this is a stop gap solution1!!!!!
     point_to = None
 
     if not isinstance(dictionary[tos], int):
@@ -227,7 +266,6 @@ def colon():
     latest = placer_for_latest
     here = len(dictionary) - 1
 
-
 def semicolon():
     set_interpret()
     #dictionary.append(exit)
@@ -248,6 +286,90 @@ def compile_word():
         elif found == 1:
             comma()
 
+def PCfunc(): #this is what PC would do in forth?!
+    push('PC')
+    find()
+
+
+
+
+
+"""
+SO to change PC the forth way (so can switch out some words later):
+push new value
+call 'PCfunc' (which will result in PC index going on the stack)
+call store
+"""
+
+"""
+IF 5 ELSE 1 THEN
+
+IF -> writes function pointer to branch, leaves a cell blank (index a), pushes the indes to stack
+action fills however many cells
+ELSE -> writes function pointer to zbranch, leaves a cell blank (index b), pushes index to stack
+action fills however many cells
+THEN -> (index c)
+
+THEN:
+stack: a b
+DUP
+a b b
+ROT ROT (or -ROT?)
+b a b
+push current
+b a b c
+SWAP
+stack should look like: b a c b
+STORE -> c put in address b
+STORE -> b put in address a
+
+def if():
+    dictionary.append(branch)
+    dictionary.append(None)
+
+def else():
+    dictionary.append(zbranch)
+    dictionary.append(None)
+
+def branch():
+    x = pop()
+    if x != 0:
+        PC = PC + 2
+        push(PC)
+        execute()
+    else:
+        address = dictionary[PC + 1]
+        push(address)
+        execute()
+
+def zbranch():
+    x = pop()
+    if x == 0:
+        PC = PC + 2
+        push(PC)
+        execute()
+    else:
+        address = dictionary[PC + 1]
+        push(address)
+        execute()
+
+def then():
+    dup()
+    rot()
+    rot()
+    push(PC)
+    swap()
+    store()
+    store()
+
+cell1: if func -> if not 0 (true) skip one cell, else jumps to address in next cell
+cell2: action
+cell3: else func: if 0 (false) skips one cell, else jumps Y cells
+cell4: action
+
+
+"""
+
 def quit():
     global return_stack
     return_stack = []
@@ -257,16 +379,24 @@ def quit():
         else:
             interpret_word()
 
-
-
-
 # Add some words to dictionary
 add_word('.S', 0, print_stack, [])
 add_word('DUP', 0, dup, [])
 add_word('*', 0, mul, [])
 add_word('+', 0, add, [])
+add_word('-', 0, sub, [])
+add_word('/', 0, div, [])
+add_word('=', 0, equals, [])
 add_word(':', 1, colon, [])
 add_word(';', 1, semicolon, [])
+add_word('!', 0, store, [])
+add_word('@', 0, fetch, [])
+add_word('FIND', 0, find, [])
+add_word('NUMBER', 1, number, [])
+add_word('>R', 1, push_RS, [])
+add_word('R>', 1, pop_RS, [])
+add_word(',', 1, comma, [])
+add_word('PC', 0, variable, None)
 
 
 ### TESTS
@@ -293,4 +423,10 @@ def test_linked_list():
 
 
 input_stream = ": TWICE DUP + DUP ; : SQUARED DUP * ; : CUBED DUP SQUARED * ; 2 CUBED 3 SQUARED 5 TWICE .S "
-quit()
+#quit()
+PCfunc()
+for i, cell in enumerate(dictionary):
+    print(i, cell)
+print_stack()
+print(pop())
+execute()
