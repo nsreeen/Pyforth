@@ -87,9 +87,9 @@ def add_word(name, immediate_flag, code_pointer, data_field):
 
 
 def print_dictionary():
-    pass
-    #for i, cell in enumerate(dictionary):
-    #    print(i, ': ', cell)
+    for i, cell in enumerate(dictionary):
+        print(i, cell)
+
 
 # NATIVE DICTIONARY FUNCTIONS
 def variable():
@@ -99,6 +99,28 @@ def dup():
     top = stack[SP]
     push(top)
     next_word()
+
+def rot():
+    """
+    1 2 3
+    2 3 1
+    """
+    three = pop()
+    two = pop()
+    one = pop()
+    push(two)
+    push(three)
+    push(one)
+
+def swap():
+    """
+    2 1
+    1 2
+    """
+    one = pop()
+    two = pop()
+    push(one)
+    push(two)
 
 def mul():
     a = pop()
@@ -115,9 +137,11 @@ def add():
     next_word()
 
 def sub():
-    a = pop()
-    b = pop()
+    print('\n @@@@@ IN SUB A, B, RESULT : ')
+    b = pop() # second number
+    a = pop() # first number
     result = a - b
+    print(a, b, result)
     push(result)
     next_word()
 
@@ -183,6 +207,7 @@ def execute():
         #print(' in else ptos, oint to is : ', tos, point_to, type(point_to))
     global index
     index = point_to
+    print('in execute, index, index2, point_to, dictionary[point_to] : ', index, index2, point_to, dictionary[point_to])
     dictionary[point_to]()
 
 def get_word():
@@ -223,8 +248,10 @@ def number():
     push(number)
 
 def interpret_word():
+    print('/n in interpret word')
     get_word()
     find()
+    print_stack()
     tos = pop()
     if tos == 1 or tos is -1:
         execute()
@@ -267,6 +294,7 @@ def colon():
     here = len(dictionary) - 1
 
 def semicolon():
+    print('SEMI COLOn!')
     set_interpret()
     #dictionary.append(exit)
     push(exit)
@@ -275,7 +303,32 @@ def semicolon():
 def compile_word():
     get_word()
     word = pop()
-    if dictionary[-4] == None:
+
+    push(word)
+    find()
+
+    found = pop()
+
+    print('\n\n\n in compile word, word and found : ', word, found)
+
+    if found < 0:
+        print('immediate flag, will execute')
+        execute()
+
+    elif dictionary[-4] == None:
+        print('creat header')
+        dictionary[-4] = word
+        pop()
+
+    elif found == 1:
+        comma()
+
+    else:
+        literal()
+
+
+
+    """if dictionary[-4] == None:
         dictionary[-4] = word
     else:
         push(word)
@@ -284,29 +337,123 @@ def compile_word():
         if found == -1:
             execute()
         elif found == 1:
-            comma()
+            comma()"""
 
 def PCfunc(): #this is what PC would do in forth?!
     push('PC')
     find()
 
+def doliteral():
+    print('\n\nin doliteral, index and index2 and PC : ', index, index2, PC)
+    print('will push: ', (dictionary[index2+1]))
+    push(dictionary[index2+1])
+    global PC
+    PC = PC + 1
+    next_word()
+
+def literal():
+    x = pop()
+    dictionary.append(doliteral)
+    dictionary.append(x)
 
 
+def if_():
+    dictionary.append(Qbranch)
+    dictionary.append(None)
+    push(len(dictionary)-1) ##### CHECK THIS
 
+def else_():
+    dictionary.append(branch)
+    #print('in else')
+    #print_dictionary()
+    dictionary.append(None)
+    push(len(dictionary)-1)
+    #print(';len dict : ', len(dictionary))
+    #push(len(dictionary)-2) ##### CHECK THIS
 
-"""
-SO to change PC the forth way (so can switch out some words later):
-push new value
-call 'PCfunc' (which will result in PC index going on the stack)
-call store
-"""
+def Qbranch():
+    global PC
+    PC = PC + 1
+    x = pop()
+    push_RS(x)
+    print('in qbranch, PC +1, x :', PC, x)
+    if x != 0: #true - carry out first block
+        print('TRUE')
+        PC = PC + 1
+        push(PC)
+        execute()
+    else:
+        print('FALSE')
+        PC = dictionary[PC]
+        push(PC)
+        execute()
 
-"""
+def branch():
+    global PC
+    print('in branch, PC is', PC)
+    x = pop_RS()
+    if x == 0:
+        print('FALSE')
+        PC = PC + 2
+        push(PC)
+        execute()
+    else:
+        print('TRUE')
+        PC = dictionary[PC+1]
+        push(PC)
+        execute()
+
+def then():
+    print('\n\n\n IN THEN, THE STACK: ')
+    print_stack()
+    dup()
+    push(1)
+    sub()
+    rot()
+    rot()
+    print_stack()
+    print('len(dictionary) is ', len(dictionary) )
+    push(len(dictionary))
+    swap()
+    print_stack()
+    store()
+    store()
+
+"""77 THEN
+78 1
+79 75
+80 <function then at 0x7f84af538d90>
+81 BRANCH
+82 0
+83 79
+84 <function branch at 0x7f84af538d08>
+85 QBRANCH
+86 0
+87 83
+88 <function Qbranch at 0x7f84af538c80>
+89 TEST
+90 0
+91 87
+92 <function enter at 0x7f84af538268>
+93 <function Qbranch at 0x7f84af538c80> #here we append address ( current + 1 -> index a )
+94 98 -->97
+95 <function doliteral at 0x7f84af538a60>
+96 7
+97 <function branch at 0x7f84af538d08> #here we append address  ( current -> index b )
+98 101
+99 <function doliteral at 0x7f84af538a60>
+100 100
+101 <function exit at 0x7f84af5381e0>  # then pushes this index to stack ( index c )
+
+a  b
+93 97
+b  a  c  b
+97 93 101 97
 IF 5 ELSE 1 THEN
 
-IF -> writes function pointer to branch, leaves a cell blank (index a), pushes the indes to stack
+IF -> writes function pointer to Qbranch, leaves a cell blank (index a), pushes the indes to stack
 action fills however many cells
-ELSE -> writes function pointer to zbranch, leaves a cell blank (index b), pushes index to stack
+ELSE -> writes function pointer to branch, leaves a cell blank (index b), pushes index to stack
 action fills however many cells
 THEN -> (index c)
 
@@ -314,53 +461,21 @@ THEN:
 stack: a b
 DUP
 a b b
-ROT ROT (or -ROT?)
-b a b
+1 -
+a b b-1
+ROT
+b b-1 a
+ROT
+b-1 a b
 push current
 b a b c
 SWAP
-stack should look like: b a c b
-STORE -> c put in address b
-STORE -> b put in address a
-
-def if():
-    dictionary.append(branch)
-    dictionary.append(None)
-
-def else():
-    dictionary.append(zbranch)
-    dictionary.append(None)
-
-def branch():
-    x = pop()
-    if x != 0:
-        PC = PC + 2
-        push(PC)
-        execute()
-    else:
-        address = dictionary[PC + 1]
-        push(address)
-        execute()
-
-def zbranch():
-    x = pop()
-    if x == 0:
-        PC = PC + 2
-        push(PC)
-        execute()
-    else:
-        address = dictionary[PC + 1]
-        push(address)
-        execute()
-
-def then():
-    dup()
-    rot()
-    rot()
-    push(PC)
-    swap()
-    store()
-    store()
+b a c b
+                        val  addr  val addr
+                        97    94    101   98
+stack should look like: b-1    a     c    b
+STORE -> put c in b    (b is val, c is addr)
+STORE -> put b-1 in a    ( is val, c is addr)
 
 cell1: if func -> if not 0 (true) skip one cell, else jumps to address in next cell
 cell2: action
@@ -397,7 +512,11 @@ add_word('>R', 1, push_RS, [])
 add_word('R>', 1, pop_RS, [])
 add_word(',', 1, comma, [])
 add_word('PC', 0, variable, None)
-
+add_word('IF', 1, if_, None)
+add_word('ELSE', 1, else_, None)
+add_word('THEN', 1, then, None)
+add_word('BRANCH', 0, branch, None)
+add_word('QBRANCH', 0, Qbranch, None)
 
 ### TESTS
 def test_add_words():
@@ -422,11 +541,7 @@ def test_linked_list():
         print(current)
 
 
-input_stream = ": TWICE DUP + DUP ; : SQUARED DUP * ; : CUBED DUP SQUARED * ; 2 CUBED 3 SQUARED 5 TWICE .S "
-#quit()
-PCfunc()
-for i, cell in enumerate(dictionary):
-    print(i, cell)
-print_stack()
-print(pop())
-execute()
+input_stream = ": TEST IF 7 ELSE 100 THEN ; 1 TEST "
+#input_stream = ": TWICE DUP + DUP ; : SQUARED DUP * ; : CUBED DUP SQUARED * ; 2 CUBED 3 SQUARED 5 TWICE .S "
+quit()
+print_dictionary
