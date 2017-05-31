@@ -1,50 +1,52 @@
 # PARAM STACK
 stack = []
-SP = None
-
+# for now, instead of using a stack pointer, will just use stack[-1]
+# later - maybe add a slot at the start of the dictionary to store this?
 def print_stack():
     print('\n Param stack: ')
     for slot in reversed(stack):
         print(slot)
-    print('\n Return stack: ')
+    print('Return stack: ')
     for slot in reversed(return_stack):
         print(slot)
+    print('\n')
 
 def push(item):
+    #print('\n IN PUSH')#, item, PC : ', item, PC)
     stack.append(item)
-    global SP
-    SP = len(stack) - 1
 
 def pop():
     tos = stack.pop()
-    global SP
-    SP = len(stack) - 1
+    #print('\n IN POP')#, popped, PC : ', tos, PC)
     return tos
 
 # RETURN stack
 return_stack = []
-RP = None
+#RP = None
 
 def push_RS(item):
+    print('\n IN PUSH_RS')#, item, PC : ', item, PC)
     return_stack.append(item)
-    global RP
-    RP = len(return_stack) - 1
+
 
 def pop_RS():
     tos = return_stack.pop()
-    global RP
-    RP = len(return_stack) - 1
+    print('\n IN POP_RS')# , popped, PC : ', tos, PC)
     return tos
 
 # Dictionary
 
 STATE = 0 # 0 means interpret mode
+#state could also be in the dictionary? should all (state pc etc) be 
 
-dictionary = []
+# Store HERE, LATEST, PC as first three entries in the dictionary
+dictionary = [-1, -1, -1]
+
+
 
 index = None # way to keep track of the 'address' index - work around because using python
 index2 = None
-PC = None
+#dictionary[2] = None
 
 latest = None # will hold link address (index) for previous word once words added
 
@@ -52,7 +54,7 @@ here = None # holds index of last added to dictionary (prob not necessary in pyt
 # not using it now because using append instead
 
 def add_word(name, immediate_flag, code_pointer, data_field):
-    #print('adding name to dict ', name)
+    print('IN ADD WORD ', name, '   PC: ', dictionary[2])
     global latest
     dictionary.append(name)
     dictionary.append(immediate_flag)
@@ -93,6 +95,7 @@ def print_dictionary():
 
 # NATIVE DICTIONARY FUNCTIONS
 def variable():
+    print('IN VARIABLE index, index2: ', index, index2, '   dictionary[2]: ', dictionary[2])
     push(index2-1)
 
 def dup():
@@ -125,90 +128,98 @@ def swap():
 def mul():
     a = pop()
     b = pop()
-    result = a * b
-    push(result)
+    push(a * b)
     next_word()
 
 def add():
     a = pop()
     b = pop()
-    result = a + b
-    push(result)
+    push(a + b)
     next_word()
 
 def sub():
-    print('\n @@@@@ IN SUB A, B, RESULT : ')
     b = pop() # second number
     a = pop() # first number
-    result = a - b
-    print(a, b, result)
-    push(result)
+    push(a - b)
     next_word()
 
 def div():
     a = pop()
     b = pop()
-    result = a / b
-    push(result)
+    push(a / b)
     next_word()
 
 def equals():
+    print('\n in equals ')
     a = pop()
     b = pop()
+    print('a: ', a, type(a), ' b: ', b, type(b))
+    print(' a == b ? : ', a==b)
     if a == b:
         push(1)
     else:
-        push(-1)
+        push(0)
+    print_stack()
     next_word()
 
 def store():
     address = pop()
     contents = pop()
+    print('IN STORE addr,contents : ', address, contents, ' index, index2: ', index, index2, '   dictionary[2]: ', dictionary[2])
     dictionary[address] = contents
 
 def fetch():
     address = pop()
     contents = dictionary[address]
+    print('IN FETCH addr,contents : ', address, contents, ' index, index2: ', index, index2, '   dictionary[2]: ', dictionary[2])
     push(contents)
 
 def exit():
-    global PC
-    PC = pop_RS()
-    if PC != None:
-        next_word()
+    print('IN EXIT top of RS : ', return_stack[-1], ' index, index2: ', index, index2, '   dictionary[2]: ', dictionary[2])
+    #global dictionary[2]
+    tors = pop_RS()
+    #push(tors)
+    #set_dictionary[2]()
+    dictionary[2] = tors
+    #if dictionary[2] != None:
+    #    next_word()
 
 def enter():
-    #print('#####in enter, PC  and index: ', PC, index, 'type pc', type(PC))
-    global PC
-    push_RS(PC)
-    PC = index
-    #print('#####in enter, PC  and index: ', PC, index, 'type pc', type(PC))
+    print('IN ENTER, dictionary[2]  and index: ', ' index, index2: ', index, index2, '   dictionary[2]: ', dictionary[2])
+    #global dictionary[2]
+    push_RS(dictionary[2])
+    dictionary[2] = index
+    #print('#####in enter, dictionary[2]  and index: ', dictionary[2], index, 'type dictionary[2]', type(dictionary[2]))
     next_word()
 
 def next_word():
-    global PC
-    if PC != None: # so that it only does anything if we r in a thread
+    print('IN NEXT WORD, ', ' index, index2: ', index, index2, '   dictionary[2]: ', dictionary[2])
+    #global dictionary[2]
+    if dictionary[2] != -1: # so that it only does anything if we r in a thread
         # there must be a more elegant solution?!?!
-        PC = PC + 1
-        push(PC)
+        dictionary[2] = dictionary[2] + 1
+        push(dictionary[2])
         execute()
 
 def execute():
     tos = pop()
+    print('IN EXECUTE tos: ', tos, ' index, index2: ', index, index2, '   dictionary[2]: ', dictionary[2])
+    # index and index2 used because no way to reliably get address r index from value.
+    # So we need another way to keep track of where in the dictionary we are and how we got there.
+    global index
     global index2
-    index2 = tos # this is a stop gap solution1!!!!!
+    index2 = tos # index2 keeps track of outer index
     point_to = None
 
     if not isinstance(dictionary[tos], int):
-        point_to = tos
-        #print(' in not int tos, point to is : ', tos, point_to, type(point_to))
+        # The cell contains the function pointer we want.
+        index = tos
+
     else:
-        point_to = dictionary[tos]
-        #print(' in else ptos, oint to is : ', tos, point_to, type(point_to))
-    global index
-    index = point_to
-    print('in execute, index, index2, point_to, dictionary[point_to] : ', index, index2, point_to, dictionary[point_to])
-    dictionary[point_to]()
+        # The cell contains the index of another cell, which contains the function pointer we want.
+        index = dictionary[tos]
+
+    dictionary[index]()
 
 def get_word():
     global input_stream
@@ -223,6 +234,7 @@ def get_word():
     push(new_word)
 
 def find():
+    print('in FIND')
     new_word = pop()
     current_link_index = latest
     while current_link_index != None:
@@ -243,13 +255,14 @@ def find():
     push(0)
 
 def number():
+    print('in NUMBER')
     string = pop()
     number = int(string)
     push(number)
 
 def interpret_word():
-    print('/n in interpret word')
     get_word()
+    print('/n in interpret word ', stack[-1])
     find()
     print_stack()
     tos = pop()
@@ -265,18 +278,22 @@ def ifdup():
     next_word()
 
 def comma():
+    print('IN COMMA')
     tos = pop()
     dictionary.append(tos)
 
 def set_interpret():
+    print('set state -> 0')
     global STATE
     STATE = 0
 
 def set_compile():
+    print('set state -> 1')
     global STATE
     STATE = 1
 
 def colon():
+    print('IN COMPILE')
     set_compile()
     global latest
     push(None)
@@ -293,14 +310,28 @@ def colon():
     latest = placer_for_latest
     here = len(dictionary) - 1
 
+"""
+: COLON
+    SET-COMPILE
+    // get rid of all the placer for latest stuff by using , to add everything to dict?
+    // create will use , and , will update here
+    CREATE
+    @ ENTER ,
+
+
+: SET-COMPILE 1 STATE ! ;
+
+: SET-INTERPRET 0 STATE ! ;
+"""
 def semicolon():
-    print('SEMI COLOn!')
+    print('IN SEMI COLOn!')
     set_interpret()
     #dictionary.append(exit)
     push(exit)
     comma()
 
 def compile_word():
+    print('IN COMPILE WORD')
     get_word()
     word = pop()
 
@@ -327,42 +358,48 @@ def compile_word():
         literal()
 
 
-
-    """if dictionary[-4] == None:
-        dictionary[-4] = word
-    else:
-        push(word)
-        find()
-        found = pop()
-        if found == -1:
-            execute()
-        elif found == 1:
-            comma()"""
-
-def PCfunc(): #this is what PC would do in forth?!
-    push('PC')
+"""def dictionary[2]func(): #this is what dictionary[2] would do in forth?!
+    print('IN dictionary[2] FUNC')
+    push('dictionary[2]')
     find()
 
+def get_dictionary[2]():
+    push('dictionary[2]')
+    find()
+
+def set_dictionary[2]():
+    push('dictionary[2]')
+    find()
+    pop()
+    push(1)
+    add()
+    swap()
+    store()
+"""
 def doliteral():
-    print('\n\nin doliteral, index and index2 and PC : ', index, index2, PC)
+    print('\n\nin doliteral, index and index2 and dictionary[2] : ', index, index2, dictionary[2])
     print('will push: ', (dictionary[index2+1]))
-    push(dictionary[index2+1])
-    global PC
-    PC = PC + 1
+    push(int(dictionary[index2+1]))
+    #global dictionary[2]
+    dictionary[2] = dictionary[2] + 1
+    print_stack()
     next_word()
 
 def literal():
+    print('IN LITERAL')
     x = pop()
     dictionary.append(doliteral)
     dictionary.append(x)
 
 
 def if_():
+    print('IN IF')
     dictionary.append(Qbranch)
     dictionary.append(None)
     push(len(dictionary)-1) ##### CHECK THIS
 
 def else_():
+    print('IN ELSE')
     dictionary.append(branch)
     #print('in else')
     #print_dictionary()
@@ -372,35 +409,35 @@ def else_():
     #push(len(dictionary)-2) ##### CHECK THIS
 
 def Qbranch():
-    global PC
-    PC = PC + 1
+    #global dictionary[2]
+    dictionary[2] = dictionary[2] + 1
     x = pop()
     push_RS(x)
-    print('in qbranch, PC +1, x :', PC, x)
+    print('in qbranch') #, PC +1, x :', PC, x)
     if x != 0: #true - carry out first block
         print('TRUE')
-        PC = PC + 1
-        push(PC)
+        dictionary[2] = dictionary[2] + 1
+        push(dictionary[2])
         execute()
-    else:
+    """else:
         print('FALSE')
         PC = dictionary[PC]
         push(PC)
-        execute()
+        execute()"""
 
 def branch():
-    global PC
-    print('in branch, PC is', PC)
+    #global PC
+    print('in branch')#, PC is', PC)
     x = pop_RS()
     if x == 0:
         print('FALSE')
-        PC = PC + 2
-        push(PC)
+        dictionary[2] = dictionary[2] + 2
+        push(dictionary[2])
         execute()
     else:
         print('TRUE')
-        PC = dictionary[PC+1]
-        push(PC)
+        dictionary[2] = dictionary[dictionary[2]+1]
+        push(dictionary[2])
         execute()
 
 def then():
@@ -418,72 +455,6 @@ def then():
     print_stack()
     store()
     store()
-
-"""77 THEN
-78 1
-79 75
-80 <function then at 0x7f84af538d90>
-81 BRANCH
-82 0
-83 79
-84 <function branch at 0x7f84af538d08>
-85 QBRANCH
-86 0
-87 83
-88 <function Qbranch at 0x7f84af538c80>
-89 TEST
-90 0
-91 87
-92 <function enter at 0x7f84af538268>
-93 <function Qbranch at 0x7f84af538c80> #here we append address ( current + 1 -> index a )
-94 98 -->97
-95 <function doliteral at 0x7f84af538a60>
-96 7
-97 <function branch at 0x7f84af538d08> #here we append address  ( current -> index b )
-98 101
-99 <function doliteral at 0x7f84af538a60>
-100 100
-101 <function exit at 0x7f84af5381e0>  # then pushes this index to stack ( index c )
-
-a  b
-93 97
-b  a  c  b
-97 93 101 97
-IF 5 ELSE 1 THEN
-
-IF -> writes function pointer to Qbranch, leaves a cell blank (index a), pushes the indes to stack
-action fills however many cells
-ELSE -> writes function pointer to branch, leaves a cell blank (index b), pushes index to stack
-action fills however many cells
-THEN -> (index c)
-
-THEN:
-stack: a b
-DUP
-a b b
-1 -
-a b b-1
-ROT
-b b-1 a
-ROT
-b-1 a b
-push current
-b a b c
-SWAP
-b a c b
-                        val  addr  val addr
-                        97    94    101   98
-stack should look like: b-1    a     c    b
-STORE -> put c in b    (b is val, c is addr)
-STORE -> put b-1 in a    ( is val, c is addr)
-
-cell1: if func -> if not 0 (true) skip one cell, else jumps to address in next cell
-cell2: action
-cell3: else func: if 0 (false) skips one cell, else jumps Y cells
-cell4: action
-
-
-"""
 
 def quit():
     global return_stack
@@ -511,7 +482,7 @@ add_word('NUMBER', 1, number, [])
 add_word('>R', 1, push_RS, [])
 add_word('R>', 1, pop_RS, [])
 add_word(',', 1, comma, [])
-add_word('PC', 0, variable, None)
+#add_word('PC', 0, variable, None)
 add_word('IF', 1, if_, None)
 add_word('ELSE', 1, else_, None)
 add_word('THEN', 1, then, None)
@@ -540,8 +511,9 @@ def test_linked_list():
         current = dictionary[current]
         print(current)
 
-
-input_stream = ": TEST IF 7 ELSE 100 THEN ; 1 TEST "
+input_stream = ": TEST 8 = IF 7 DUP ELSE 100 * THEN ; 5 8 TEST "
+#input_stream = ": TEST IF 7 DUP ELSE 100 * THEN ; 5 1 TEST "
+#input_stream = ": TEST IF 7 ELSE 100 THEN ; 1 TEST "
 #input_stream = ": TWICE DUP + DUP ; : SQUARED DUP * ; : CUBED DUP SQUARED * ; 2 CUBED 3 SQUARED 5 TWICE .S "
 quit()
 print_dictionary
