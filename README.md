@@ -1,1 +1,1 @@
-# Forth-in-Python
+Forth implemented in python

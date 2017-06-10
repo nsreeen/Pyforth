@@ -408,6 +408,33 @@ def while_():
         dictionary[5] = addr - 1 # set PC to one less than BEGIN's addr
     next_word()
 
+def do():
+    I = pop()
+    J = pop()
+    addr = index2
+    push_RS(addr)
+    push_RS(J)
+    push_RS(I)
+    next_word()
+
+def loop():
+    I = pop_RS()
+    J = pop_RS()
+    addr = pop_RS()
+    I = I + 1
+    if I != J:
+        # return to do
+        dictionary[5] = addr - 1
+        push(J)
+        push(I)
+    next_word()
+
+def I():
+    I = pop_RS()
+    push(I)
+    push_RS(I)
+    next_word()
+
 def bye():
     global running
     running = False
@@ -443,6 +470,10 @@ add_word('UNTIL', 0, until, None)
 add_word('[', 0, set_interpret, None)
 add_word(']', 0, set_compile, None)
 add_word('BYE', 0, bye, None)
+add_word('DO', 0, do, None)
+add_word('LOOP', 0, loop, None)
+add_word('I', 0, I, None)
+
 
 def print_cw(): # FOR DEBUGGING
     print(' [index2, index, dictionary[index]]            [PC] [stack]   [return_stack] ')
@@ -451,7 +482,7 @@ def print_cw(): # FOR DEBUGGING
 
 
 if __name__ == "__main__":
-    input_stream = ""
+    input_stream = ": TEST 5 1 DO I LOOP ; TEST"
 
     if len(sys.argv) > 1:
         filename = sys.argv[1]

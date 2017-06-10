@@ -71,13 +71,17 @@ class TestThreading:
         assert forth.pop() == 5
         assert forth.pop() == 5
 
-
-
     def test_while(self):
         forth.input_stream = ": TEST 5 BEGIN DUP 1 + DUP 20 < 1 WHILE ; TEST "
         forth.stack = []
         forth.quit()
         assert forth.stack == [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+    def test_do_loop(self):
+        forth.input_stream = ": TEST 5 1 DO I LOOP ; TEST"
+        forth.stack = []
+        forth.quit()
+        assert forth.stack == [1, 2, 3, 4]
 
 
 """def test_until(self):
