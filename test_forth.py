@@ -83,6 +83,11 @@ class TestThreading:
         forth.quit()
         assert forth.stack == [1, 2, 3, 4]
 
+    def test_do_plus_loop(self):
+        forth.input_stream = ": TEST 30 2 DO 2 I + DUP +LOOP ; TEST"
+        forth.stack = []
+        forth.quit()
+        assert forth.stack == [4, 8, 16]
 
 """def test_until(self):
         forth.input_stream = ": TEST 5 BEGIN DUP 1 + DUP 20 UNTIL ; TEST"

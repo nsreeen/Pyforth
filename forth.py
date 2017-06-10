@@ -429,6 +429,19 @@ def loop():
         push(I)
     next_word()
 
+def plus_loop():
+    I = pop_RS()
+    J = pop_RS()
+    addr = pop_RS()
+    difference = pop()
+    I = I + difference
+    if I != J:
+        # return to do
+        dictionary[5] = addr - 1
+        push(J)
+        push(I)
+    next_word()
+
 def I():
     I = pop_RS()
     push(I)
@@ -472,6 +485,7 @@ add_word(']', 0, set_compile, None)
 add_word('BYE', 0, bye, None)
 add_word('DO', 0, do, None)
 add_word('LOOP', 0, loop, None)
+add_word('+LOOP', 0, plus_loop, None)
 add_word('I', 0, I, None)
 
 
@@ -482,7 +496,7 @@ def print_cw(): # FOR DEBUGGING
 
 
 if __name__ == "__main__":
-    input_stream = ": TEST 5 1 DO I LOOP ; TEST"
+    input_stream = ": TEST 30 2 DO 2 I + DUP +LOOP ;"
 
     if len(sys.argv) > 1:
         filename = sys.argv[1]
