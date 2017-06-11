@@ -511,4 +511,8 @@ if __name__ == "__main__":
     while running:
         input_stream = input()
         if input_stream:
-            quit()
+            try:
+                quit()
+                print('ok')
+            except:
+                print('Undefined word')
