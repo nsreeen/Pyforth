@@ -238,12 +238,10 @@ def get_word():
     global input_stream
     new_word = ""
     c = ""
-    stop = False
-    while ( len(input_stream) > 0 ) and ( len(new_word) == 0 or c != " " and ):
+    while c != " " and len(input_stream) > 0:
         c = input_stream[0]
         new_word = new_word + c
         input_stream = input_stream[1:]
-        new_word = new_word.strip()
     push(new_word)
 
 def find():
@@ -318,10 +316,7 @@ def compile_word():
         elif found == 1: # no immediate flag, word should be compiled
             comma()
         else:
-            try:
-                literal() # word isn't found, it is a number
-            except:
-                print('invalid word')
+            literal() # word isn't found, it is a number
 
 def doliteral():
     push(int(dictionary[index2+1]))
@@ -339,7 +334,6 @@ def variable():
 def quit():
     global return_stack
     return_stack = []
-
     while len(input_stream):
         if STATE:
             compile_word()
@@ -510,13 +504,8 @@ def print_debug(): # FOR DEBUGGING
 input_stream = ""
 output = ""
 def webrepl(input_line, consistent_dictionary, consistent_stack):
-    # this is a hacky way to deal with this temporalily
-    if '  ' in input_line:
-        input_line.replace('  ', ' ')
-        print("\n\n spaces replaced")
     global input_stream
     input_stream = input_line
-    print(" \n\n input stream: ", input_stream)
     global stack
     stack = consistent_stack
     global output
@@ -524,8 +513,8 @@ def webrepl(input_line, consistent_dictionary, consistent_stack):
     if consistent_dictionary != {}:
         global dictionary
         dictionary = consistent_dictionary
-    print_dictionary(last_section_only=1)
     quit()
+    print('output is: ', output)
     return dictionary, stack, output
 
 if __name__ == "__main__":

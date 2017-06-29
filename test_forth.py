@@ -21,9 +21,7 @@ class TestStacks:
 class TestDictionary:
     def test_add_tracking_variables_start_of_dictionary(self):
         assert forth.dictionary[1] == len(forth.dictionary) - 1 #HERE
-        assert forth.dictionary[5] == -1
-        assert forth.dictionary[7] == -1
-        assert forth.dictionary[9] == -1
+        assert forth.dictionary[5] == -1 #PC
 
     def test_linked_list(self):
         current = forth.dictionary[3]
