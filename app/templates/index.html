@@ -22,9 +22,8 @@
 
   <div class="row"><div class="col-sm-10 col-sm-offset-1">
 
-    <form id="modeform">
-    <label for="radio1"><input type="radio" id="radio1" name="mode" value="1" checked="checked" > Compile </label>
-    <label for="radio2"><input type="radio"id="radio2"  name="mode" value="0" > Interpret </label>
+    <form id="enterform">
+    <input type="checkbox" id="enter" name="enter" value="enter" >  <label for="enter"> Enter to submit </label>
     </form>
 
       <form action="/" method="POST">
@@ -49,13 +48,13 @@ $(document).ready(function() {
 
     var compile = 1;
 
-    $('input[name=mode]').change(function(){
-        compile = $('input[name=mode]:checked', '#modeform').val();
-        console.log(compile);
+    $('input[name=enter]').change(function(){
+        enter = ($('#enter').is(":checked"))
+        console.log(enter);
     });
 
     $("#input_stream").keypress(function (e) {
-        if(compile == 0 && e.which == 13 && !e.shiftKey) {
+        if(enter == true && e.which == 13 && !e.shiftKey) {
             $(this).closest("form").submit();
             e.preventDefault();
             return false;
