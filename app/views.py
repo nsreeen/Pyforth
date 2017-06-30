@@ -21,7 +21,7 @@ def addinput():
     global stack
     new_input = request.form['input_stream']
 
-    #new_input = " ".join(new_input.splitlines())
+    new_input = " ".join(new_input.split())
     print(" new_input is ", new_input)
 
     dictionary, stack, output = webrepl(new_input, dictionary, stack)
