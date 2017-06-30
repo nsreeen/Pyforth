@@ -34,26 +34,26 @@ def pop_RS():
 ################### Dictionary ###################
 word_trace = [] #for debugging
 STATE = 0 # 0 means interpret mode
-#state could also be in the dictionary? should all (state pc etc) be? need a way to get them?
+index = None # to keep track of the 'address' index - work around because using python
+index2 = None # to keep track of 'address' index when cell points to another cell
 
-# Store HERE, LATEST, PC, index, index2 - as first three entries in the dictionary
+# Store HERE, LATEST, PC- as first three entries in the dictionary
+# STATE, index, and index2 could also be stored here?
 dictionary = ['HERE', -1, 'LATEST', -1, 'PC', -1] #, 'index', -1, 'index2', -1]
-
-index = None # way to keep track of the 'address' index - work around because using python
-index2 = None
 
 def print_dictionary(last_section_only=0):
     if last_section_only == 1:
         start = len(dictionary) - 15
     else:
         start = 0
-
     for i in range(start, len(dictionary)):
         cell = dictionary[i]
         x = ""
         if cell != 0 and isinstance(cell, int):
             x = "    | " + str(dictionary[cell])
         print(i, cell, x)
+
+
 
 ################### NATIVE FUNCTIONS FOR ADDING TO DICTIONARY  ###################
 
@@ -108,85 +108,6 @@ def fetch():
     contents = dictionary[address]
     push(contents)
 
-################### NATIVE STACK MANIPULATION FUNCTIONS ###################
-
-def dup():
-    top = stack[-1]
-    push(top)
-    next_word()
-
-def rot():
-    # 1 2 3 -> 2 3 1
-    three = pop()
-    two = pop()
-    one = pop()
-    push(two)
-    push(three)
-    push(one)
-
-def swap():
-    # 2 1 -> 1 2
-    one = pop()
-    two = pop()
-    push(one)
-    push(two)
-
-def mul():
-    a = pop()
-    b = pop()
-    push(a * b)
-    next_word()
-
-def add():
-    a = pop()
-    b = pop()
-    push(a + b)
-    next_word()
-
-def sub():
-    b = pop() # second number
-    a = pop() # first number
-    push(a - b)
-    next_word()
-
-def div():
-    a = pop()
-    b = pop()
-    push(a / b)
-    next_word()
-
-def equals():
-    a = pop()
-    b = pop()
-    if a == b:
-        push(1)
-    else:
-        push(0)
-    next_word()
-
-def lessthan():
-    b = pop()
-    a = pop()
-    if a < b:
-        push(1)
-    else:
-        push(0)
-    next_word()
-
-def greaterthan():
-    b = pop()
-    a = pop()
-    if a > b:
-        push(1)
-    else:
-        push(0)
-    next_word()
-
-def ifdup():
-    top = stack[SP]
-    if top != 0:
-        push(top)
-    next_word()
 
 ################### COMPILING AND INTERPRETING ##############################
 
@@ -370,7 +291,6 @@ def Qbranch():
         push(dictionary[5])
         execute()
 
-
 def branch():
     x = pop_RS()
     if x == 0: # will carry out second block
@@ -402,7 +322,6 @@ def until():
     flag = pop()
     compare = pop()
     if flag != compare:
-        #print('continue')
         dictionary[5] = addr - 1 # set PC to one less than BEGIN's addr
     next_word()
 
@@ -411,7 +330,6 @@ def while_():
     flag = pop()
     compare = pop()
     if flag == compare:
-        #print('continue')
         dictionary[5] = addr - 1 # set PC to one less than BEGIN's addr
     next_word()
 
@@ -429,8 +347,7 @@ def loop():
     J = pop_RS()
     addr = pop_RS()
     I = I + 1
-    if I != J:
-        # return to do
+    if I != J: # check loop should be repeated
         dictionary[5] = addr - 1
         push(J)
         push(I)
@@ -442,8 +359,7 @@ def plus_loop():
     addr = pop_RS()
     difference = pop()
     I = I + difference
-    if I != J:
-        # return to do
+    if I != J: # check if loop should be repeated
         dictionary[5] = addr - 1
         push(J)
         push(I)
@@ -459,6 +375,85 @@ def bye():
     global running
     running = False
 
+################### NATIVE STACK MANIPULATION FUNCTIONS ###################
+
+def dup():
+    top = stack[-1]
+    push(top)
+    next_word()
+
+def rot():
+    # 1 2 3 -> 2 3 1
+    three = pop()
+    two = pop()
+    one = pop()
+    push(two)
+    push(three)
+    push(one)
+
+def swap():
+    # 2 1 -> 1 2
+    one = pop()
+    two = pop()
+    push(one)
+    push(two)
+
+def mul():
+    a = pop()
+    b = pop()
+    push(a * b)
+    next_word()
+
+def add():
+    a = pop()
+    b = pop()
+    push(a + b)
+    next_word()
+
+def sub():
+    b = pop() # second number
+    a = pop() # first number
+    push(a - b)
+    next_word()
+
+def div():
+    a = pop()
+    b = pop()
+    push(a / b)
+    next_word()
+
+def equals():
+    a = pop()
+    b = pop()
+    if a == b:
+        push(1)
+    else:
+        push(0)
+    next_word()
+
+def lessthan():
+    b = pop()
+    a = pop()
+    if a < b:
+        push(1)
+    else:
+        push(0)
+    next_word()
+
+def greaterthan():
+    b = pop()
+    a = pop()
+    if a > b:
+        push(1)
+    else:
+        push(0)
+    next_word()
+
+def ifdup():
+    top = stack[SP]
+    if top != 0:
+        push(top)
+    next_word()
 
 ################ ADD NATIVE WORDS TO DICTIONARY ####################
 add_word('.S', 0, print_stack, [])
@@ -501,6 +496,9 @@ def print_debug(): # FOR DEBUGGING
     for line in word_trace:
         print(line)
 
+
+################# FOR RUNNING FROM WEBAPP #################
+
 input_stream = ""
 output = ""
 def webrepl(input_line, consistent_dictionary, consistent_stack):
@@ -516,6 +514,9 @@ def webrepl(input_line, consistent_dictionary, consistent_stack):
     quit()
     print('output is: ', output)
     return dictionary, stack, output
+
+
+################ FOR RUNNING FROM TERMINAL #####################
 
 if __name__ == "__main__":
     input_stream = ": TEST 30 2 DO 2 I + DUP +LOOP ;"

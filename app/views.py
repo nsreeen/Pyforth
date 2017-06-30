@@ -1,6 +1,6 @@
 from flask import render_template, session, request
 from app import app
-from pyforth import forth
+from pyforth.pyforth import webrepl
 from .forms import ModeForm, CompileForm
 import re
 
@@ -25,7 +25,7 @@ def index():
             new_input_stream = " ".join(new_input_stream.splitlines())
             print(" new_input_stream is ", new_input_stream, "|")
 
-            dictionary, stack, output = forth.webrepl(new_input_stream, dictionary, stack)
+            dictionary, stack, output = webrepl(new_input_stream, dictionary, stack)
             cumulative_log.append(new_input_stream)
             cumulative_log.append(output)
 
