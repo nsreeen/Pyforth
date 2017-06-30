@@ -1,4 +1,4 @@
-from flask import render_template, session, request
+from flask import render_template, session, request, jsonify
 from app import app
 from pyforth.pyforth import webrepl
 from .forms import ModeForm, CompileForm
@@ -12,26 +12,21 @@ output = ""
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = CompileForm()
+    return render_template('index.html', form=form, log_text='')
+
+@app.route('/addinput', methods=['POST'])
+def addinput():
     global output
     global dictionary
     global stack
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            print(form)
-            new_input_stream = form.input_stream.data
-            form.input_stream.data = ''
-            print(" new_input_stream is ", new_input_stream, "|")
-            #new_input_stream = re.sub(new_input_stream, '\\n\\r', '0')
-            new_input_stream = " ".join(new_input_stream.splitlines())
-            print(" new_input_stream is ", new_input_stream, "|")
+    new_input = request.form['input_stream']
 
-            dictionary, stack, output = webrepl(new_input_stream, dictionary, stack)
-            cumulative_log.append(new_input_stream)
-            cumulative_log.append(output)
+    #new_input = " ".join(new_input.splitlines())
+    print(" new_input is ", new_input)
 
-
-            print(" output is ", output)
-            print(" cumulative_log is ", cumulative_log)
-
-            return render_template('index.html', form=form, log_text = cumulative_log)
-    return render_template('index.html', form=form, log_text='')
+    dictionary, stack, output = webrepl(new_input, dictionary, stack)
+    print(" output is ", output)
+    print(" stack is ", stack)
+    cumulative_log.append(new_input)
+    cumulative_log.append(output)
+    return jsonify(new_input=new_input, output=output)
