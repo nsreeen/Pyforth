@@ -1,16 +1,16 @@
-import sys
+import sys, io
+from contextlib import redirect_stdout
 
 ################### PARAM STACK ###################
 stack = [] # using stack[-1] instead of a stack pointer
 
 def print_stack():
+    global output
     stri = ""
     stri = stri + "<" + str(len(stack)) + "> "
     for item in stack:
         stri = stri + str(item) + " "
-    #print(stri)
-    global output
-    output = stri
+    output += stri
 
 def push(item):
     stack.append(item)
@@ -32,16 +32,17 @@ def pop_RS():
 ################### Dictionary ###################
 word_trace = [] #for debugging
 STATE = 0 # 0 means interpret mode
-# index will be used as dictionary address
+
 index = None # to keep track of the 'address' index - work around because using python
 index2 = None # to keep track of 'address' index when cell points to another cell
 
-# Store HERE, LATEST, PC- as first three entries in the dictionary
-# should STATE, index, and index2 also be stored here? should none of them be here?
-# should they all be stored in the dictionary but in forth variable format?
-dictionary = ['HERE', -1, 'LATEST', -1, 'PC', -1] #, 'index', -1, 'index2', -1]
+HERE = -1
+LATEST = -1
+PC = -1
 
-def print_dictionary(last_section_only=1):
+dictionary = []
+
+def print_dictionary(last_section_only=0):
     if last_section_only == 1:
         start = len(dictionary) - 20
     else:
@@ -59,16 +60,18 @@ def print_dictionary(last_section_only=1):
 def comma():
     tos = pop()
     dictionary.append(tos)
-    dictionary[1] = len(dictionary) - 1 # HERE
+    global HERE
+    HERE = len(dictionary) - 1
 
 def create(name, immediate_flag):
     push(name)
     comma()
     push(immediate_flag)
     comma()
-    push(dictionary[3]) #LATEST is pushed as link address
+    global LATEST
+    push(LATEST) #LATEST is pushed as link address
     comma()
-    dictionary[3] = len(dictionary) - 1 # update LATEST
+    LATEST = len(dictionary) - 1
 
 def add_word(name, immediate_flag, code_pointer, data_field):
     create(name, immediate_flag) # adds name, imm flag, link address, and updates latest
@@ -94,7 +97,8 @@ def add_word(name, immediate_flag, code_pointer, data_field):
         push(exit)
         comma()
 
-    dictionary[1] = len(dictionary) - 1 # update HERE
+    global HERE
+    HERE = len(dictionary) - 1 # update HERE
 
 def store():
     address = pop()
@@ -110,34 +114,32 @@ def fetch():
 ################### COMPILING AND INTERPRETING ##############################
 
 def exit():
-    dictionary[5] = pop_RS() # set PC to top of return stack
-    if dictionary[5] != -1: # if we are returning to a composite word thread
+    global PC
+    PC = pop_RS() # set PC to top of return stack
+    if PC != -1: # if we are returning to a composite word thread
         next_word() # next word takes us to the next word in the composite word thread
 
 def enter():
-    push_RS(dictionary[5]) # push PC to return stack so we can return to it
-    dictionary[5] = index # set PC to current index/ address in the dictionary
+    global PC
+    push_RS(PC) # push PC to return stack so we can return to it
+    PC = index # set PC to current index/ address in the dictionary
     next_word()
 
 def next_word():
-    if dictionary[5] != -1: # so that it only does anything if we r in a thread
+    global PC
+    if PC != -1: # so that it only does anything if we r in a thread
         # ie if PC is being used to store our place in a thread?
         # is there a better solution than comparing to -1?
-        dictionary[5] = dictionary[5] + 1
-        push(dictionary[5])
+        PC = PC + 1
+        push(PC)
         execute()
 
 def execute():
-    tos = pop()
-    # index and index2 used because no way to reliably get address or index from value.
-    # So we need another way to keep track of where in the dictionary we are and how we got there.
     global index
     global index2
+    tos = pop()
     index2 = tos # index2 keeps track of where we are in the dictionary before
     # we potentially follow an index to another cell looking for a function pointer
-    # not using PC for this because whether or not PC is being used determines
-    # whether or not next_word does anything
-    point_to = None
 
     if not isinstance(dictionary[tos], int): #(not an int ie not an index/address)
         # the cell contains the function pointer we want
@@ -148,7 +150,7 @@ def execute():
         index = dictionary[tos]
 
     # for debgging:
-    word_trace.append([[index2, index, dictionary[index]], [dictionary[5]], stack[:], return_stack[:]])
+    word_trace.append([[index2, index, dictionary[index]], [PC], stack[:], return_stack[:]])
 
     dictionary[index]() # execute the function we want
 
@@ -167,7 +169,7 @@ def get_word():
 
 def find():
     new_word = pop()
-    current_link_index = dictionary[3] #LATEST
+    current_link_index = LATEST
     while current_link_index != -1: # -1 means we are at the first word in the dictionary
         current_name = dictionary[current_link_index-2] # name is stored two cells above link address
         if current_name == new_word:
@@ -235,7 +237,8 @@ def compile_word():
 
 def doliteral():
     push(int(dictionary[index2+1])) # push number stored in the cell after doliteral code pointer
-    dictionary[5] = dictionary[5] + 1 # increment PC by 1 (next_word will increment it by one again)
+    global PC
+    PC = PC + 1 # increment PC by 1 (next_word will increment it by one again)
     next_word()
 
 def literal():
@@ -289,32 +292,34 @@ def then():
 
 
 def Qbranch():
+    global PC
     # Increment the PC by 1 -> it will point to the cell directly after Qbranch,
     # which stores the index/ address that points to the index/ address to jump to
-    dictionary[5] = dictionary[5] + 1
+    PC = PC + 1
     x = pop()
     push_RS(x) # put in return stack so branch can check it later
     if x != 0: # true -> carry out first block
-        dictionary[5] = dictionary[5] + 1 # PC increments by one to enter first block
-        push(dictionary[5])
+        PC = PC + 1 # PC increments by one to enter first block
+        push(PC)
         execute()
     else:
         # PC will point to index/ address saved in cell after qbranch
-        dictionary[5] = dictionary[dictionary[5]]
-        push(dictionary[5])
+        PC = dictionary[PC]
+        push(PC)
         execute()
 
 def branch():
+    global PC
     x = pop_RS()
     if x == 0: # false -> will carry out second block
-        # skip cell after which contains index/ address of exit
-        dictionary[5] = dictionary[5] + 2
-        push(dictionary[5])
+        # skip cell after - which contains index/ address of exit
+        PC = PC + 2
+        push(PC)
         execute()
     else:
         # go to exit index/ address stored in the cell after branch
-        dictionary[5] = dictionary[dictionary[5]+1]
-        push(dictionary[5])
+        PC = dictionary[PC+1]
+        push(PC)
         execute()
 
 def begin_():
@@ -322,10 +327,11 @@ def begin_():
     next_word()
 
 def until():
+    global PC
     addr = pop_RS()
     flag = pop()
     if flag == 0:
-        dictionary[5] = addr - 1 # set PC to one less than BEGIN's addr (next_word will add 1)
+        PC = addr - 1 # set PC to one less than BEGIN's addr (next_word will add 1)
     next_word()
 
 def do():
@@ -338,24 +344,26 @@ def do():
     next_word()
 
 def loop():
+    global PC
     I = pop_RS()
     J = pop_RS()
     addr = pop_RS()
     I = I + 1
     if I != J: # check loop should be repeated
-        dictionary[5] = addr - 1
+        PC = addr - 1
         push(J)
         push(I)
     next_word()
 
 def plus_loop():
+    global PC
     I = pop_RS()
     J = pop_RS()
     addr = pop_RS()
     difference = pop()
     I = I + difference
     if I != J: # check if loop should be repeated
-        dictionary[5] = addr - 1
+        PC = addr - 1
         push(J)
         push(I)
     next_word()
@@ -480,37 +488,33 @@ add_word('.D', 0, print_dictionary, [])
 
 
 def print_debug(): # FOR DEBUGGING
-    print(' [index2, index, dictionary[index]]            [PC] [stack]   [return_stack] ')
+    print(' [index2, index, dictionary[index]] [PC] [stack]   [return_stack] ')
     for line in word_trace:
         print(line)
 
 
-################# FOR RUNNING FROM WEBAPP #################
+################# FOR RUNNING REPL #################
 
 input_stream = ""
 output = ""
+
 def webrepl(input_line, consistent_dictionary, consistent_stack):
     global input_stream
     input_stream = input_line
     global stack
     stack = consistent_stack
-    global output
-    output = ""
+
     if consistent_dictionary != {}:
         global dictionary
         dictionary = consistent_dictionary
 
+
     quit()
-    print('output is: ', output)
 
     return dictionary, stack, output
 
 
-################ FOR RUNNING FROM TERMINAL #####################
-
 if __name__ == "__main__":
-    input_stream =  ""
-
     # if there is a forth file, open that
     if len(sys.argv) > 1:
         filename = sys.argv[1]
@@ -521,16 +525,15 @@ if __name__ == "__main__":
 
     # run the forth from the file
     quit()
-    print(output)
 
     # start the repl
     running = True
     while running:
         input_stream = input()
         if input_stream:
-            try:
-                quit()
-                print(output)
-                print('ok')
-            except:
-                print('Undefined word')
+            #try:
+            output = ""
+            quit()
+            print("".join(output))
+            #except:
+            #    print('word not in dictionary')

@@ -1,3 +1,4 @@
+
 import pytest
 import pyforth as forth
 
@@ -20,11 +21,11 @@ class TestStacks:
 
 class TestDictionary:
     def test_add_tracking_variables_start_of_dictionary(self):
-        assert forth.dictionary[1] == len(forth.dictionary) - 1 #HERE
-        assert forth.dictionary[5] == -1 #PC
+        assert forth.HERE == len(forth.dictionary) - 1 #HERE
+        assert forth.PC == -1 #PC
 
     def test_linked_list(self):
-        current = forth.dictionary[3]
+        current = forth.LATEST
         addresses = []
         while current != -1:
             current = forth.dictionary[current]
@@ -109,7 +110,7 @@ def test_add_words():
 
 def test_linked_list():
     #print('Test the linked list:')
-    current = dictionary[3]
+    current = LATEST
     #print(current)
     while current != None:
         current = dictionary[current]
