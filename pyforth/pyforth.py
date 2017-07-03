@@ -8,7 +8,7 @@ def print_stack():
     stri = stri + "<" + str(len(stack)) + "> "
     for item in stack:
         stri = stri + str(item) + " "
-    print(stri)
+    #print(stri)
     global output
     output = stri
 
@@ -41,9 +41,9 @@ index2 = None # to keep track of 'address' index when cell points to another cel
 # should they all be stored in the dictionary but in forth variable format?
 dictionary = ['HERE', -1, 'LATEST', -1, 'PC', -1] #, 'index', -1, 'index2', -1]
 
-def print_dictionary(last_section_only=0):
+def print_dictionary(last_section_only=1):
     if last_section_only == 1:
-        start = len(dictionary) - 15
+        start = len(dictionary) - 20
     else:
         start = 0
     for i in range(start, len(dictionary)):
@@ -249,6 +249,8 @@ def variable():
 def quit():
     global return_stack
     return_stack = []
+    global input_stream
+    input_stream = input_stream.strip()
     while len(input_stream):
         if STATE:
             compile_word()
@@ -474,6 +476,8 @@ add_word('DO', 0, do, None)
 add_word('LOOP', 0, loop, None)
 add_word('+LOOP', 0, plus_loop, None)
 add_word('I', 0, I, None)
+add_word('.D', 0, print_dictionary, [])
+
 
 def print_debug(): # FOR DEBUGGING
     print(' [index2, index, dictionary[index]]            [PC] [stack]   [return_stack] ')
@@ -517,8 +521,7 @@ if __name__ == "__main__":
 
     # run the forth from the file
     quit()
-
-    print_dictionary(last_section_only=1)
+    print(output)
 
     # start the repl
     running = True
@@ -527,6 +530,7 @@ if __name__ == "__main__":
         if input_stream:
             try:
                 quit()
+                print(output)
                 print('ok')
             except:
                 print('Undefined word')

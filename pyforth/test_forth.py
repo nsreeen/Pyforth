@@ -1,5 +1,5 @@
 import pytest
-from . import pyforth as forth
+import pyforth as forth
 
 class TestStacks:
     def test_param_stack_push_and_pop(self):
