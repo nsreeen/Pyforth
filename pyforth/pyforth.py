@@ -503,11 +503,12 @@ def webrepl(input_line, consistent_dictionary, consistent_stack):
     input_stream = input_line
     global stack
     stack = consistent_stack
+    global output
+    output = ""
 
     if consistent_dictionary != {}:
         global dictionary
         dictionary = consistent_dictionary
-
 
     quit()
 

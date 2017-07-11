@@ -7,7 +7,6 @@ import re
 cumulative_log = []
 dictionary = {}
 stack = []
-output = ""
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -16,9 +15,9 @@ def index():
 
 @app.route('/addinput', methods=['POST'])
 def addinput():
-    global output
     global dictionary
     global stack
+
     new_input = request.form['input_stream']
 
     new_input = " ".join(new_input.split())

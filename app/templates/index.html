@@ -20,11 +20,14 @@
     </div>
   </div></div>
 
+  <span id="message-area"></span>
+
   <div class="row"><div class="col-sm-10 col-sm-offset-1">
 
-      <textarea id="input_stream"></textarea> <br>
+      <textarea id="input-stream"></textarea> <br>
       <a href="javascript:send_input();">submit</a>
-      <form id="enterform">
+
+      <form id="enter-form">
       <input type="checkbox" id="enter" name="enter" value="enter" > <label for="enter"> Enter to submit </label>
       </form>
 
@@ -46,7 +49,7 @@ $(document).ready(function() {
         console.log(enter);
     });
 
-    $("#input_stream").keypress(function (e) {
+    $("#input-stream").keypress(function (e) {
         if(enter == true && e.which == 13 && !e.shiftKey) {
             // $(this).closest("form").submit();
             send_input();
@@ -59,22 +62,23 @@ $(document).ready(function() {
 
 
 function send_input() {
-    var input_stream = $("#input_stream").val();
+    var input_stream = $("#input-stream").val();
     $.post('/addinput', {
         input_stream: input_stream
     }).done(function(added) {
-        console.log(added['new_input']);
-        console.log(added['output']);
+        console.log(added)
+        console.log('input: ' + added['new_input']);
+        console.log('output : ', added['output']);
         $('#logbox').append("<br>");
         $('#logbox').append(added['new_input']);
         if (added['output'] != "") {
           $('#logbox').append("<br>");
           $('#logbox').append(added['output']);
         }
-        $('#input_stream').val('');
+        $('#input-stream').val('');
     }).fail(function() {
         console.log(input_stream);
-        $('#logbox').text('error');
+        $('#message-area').text('error - please try again').fadeOut(2000);
     });
 }
 
