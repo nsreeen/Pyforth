@@ -63,39 +63,35 @@ def comma():
     global HERE
     HERE = len(dictionary) - 1
 
+def _comma(entry):
+    dictionary.append(entry)
+    global HERE
+    HERE = len(dictionary) - 1
+
 def create(name, immediate_flag):
-    push(name)
-    comma()
-    push(immediate_flag)
-    comma()
+    _comma(name)
+    _comma(immediate_flag)
     global LATEST
-    push(LATEST) #LATEST is pushed as link address
-    comma()
+    _comma(LATEST) #LATEST is pushed as link address
     LATEST = len(dictionary) - 1
 
 def add_word(name, immediate_flag, code_pointer, data_field):
     create(name, immediate_flag) # adds name, imm flag, link address, and updates latest
 
     if code_pointer == variable: # this word is a VARIABLE
-        push(variable)
-        comma()
-        push(data_field)
-        comma()
+        _comma(variable)
+        _comma(data_field)
 
     elif code_pointer != None: # this word has a function pointer (not composite)
-        push(code_pointer)
-        comma()
+        _comma(code_pointer)
 
     else: # this is a composite word
-        push(enter)
-        comma()
+        _comma(enter)
         for word in data_field:
             push(word)
             find()
-            found = pop() #assume it is found for now
-            comma()
-        push(exit)
-        comma()
+            _comma(pop())#assume it is found for now
+        _comma(exit)
 
     global HERE
     HERE = len(dictionary) - 1 # update HERE
