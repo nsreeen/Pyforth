@@ -12,10 +12,21 @@ def print_stack():
         stri = stri + str(item) + " "
     output += stri
 
+
 def push(item):
     stack.append(item)
+    print('\ PUSHING : ', item)
+    stri = "<" + str(len(stack)) + "> "
+    for item in stack:
+        stri = stri + str(item) + " "
+    print(stri)
 
 def pop():
+    print('\ POPPING : ', stack[-1])
+    stri = "<" + str(len(stack)) + "> "
+    for item in stack:
+        stri = stri + str(item) + " "
+    print(stri)
     tos = stack.pop()
     return tos
 
@@ -24,6 +35,7 @@ return_stack = []
 
 def push_RS(item):
     return_stack.append(item)
+    print('\n\n\n PUSHING TO RETURN STACK ', item)
 
 def pop_RS():
     tos = return_stack.pop()
@@ -33,14 +45,20 @@ def pop_RS():
 word_trace = [] #for debugging
 STATE = 0 # 0 means interpret mode
 
-index = None # to keep track of the 'address' index - work around because using python
-index2 = None # to keep track of 'address' index when cell points to another cell
-
-HERE = -1
-LATEST = -1
-PC = -1
+HERE = None
+LATEST = None
+PC = None
+index = None
+index2 = None
 
 dictionary = []
+
+class Header():
+    def __init__(self, name, immediate_flag, link_address, code_pointer):
+        self.name = name
+        self.immediate_flag = immediate_flag
+        self.link_address = link_address
+        self.code_pointer = code_pointer
 
 def print_dictionary(last_section_only=0):
     if last_section_only == 1:
@@ -48,10 +66,13 @@ def print_dictionary(last_section_only=0):
     else:
         start = 0
     for i in range(start, len(dictionary)):
-        cell = dictionary[i]
+        if isinstance(dictionary[i], Header):
+            cell = str(dictionary[i].name) + str(dictionary[i].immediate_flag) + " " + str(dictionary[i].link_address) + " " + str(dictionary[i].code_pointer)
+        else:
+            cell = dictionary[i]
         x = ""
         if cell != 0 and isinstance(cell, int):
-            x = "    | " + str(dictionary[cell])
+            x = "    | " + str(dictionary[cell]) + str(dictionary[cell].name)
         print(i, cell, x)
 
 
@@ -63,39 +84,32 @@ def comma():
     global HERE
     HERE = len(dictionary) - 1
 
-def create(name, immediate_flag):
-    push(name)
-    comma()
-    push(immediate_flag)
-    comma()
+def _comma(entry):
+    dictionary.append(entry)
+    global HERE
+    HERE = len(dictionary) - 1
+
+def create(name, immediate_flag, code_pointer):
     global LATEST
-    push(LATEST) #LATEST is pushed as link address
-    comma()
+    new_header = Header(name, immediate_flag, LATEST, code_pointer)
+    dictionary.append(new_header)
     LATEST = len(dictionary) - 1
 
 def add_word(name, immediate_flag, code_pointer, data_field):
-    create(name, immediate_flag) # adds name, imm flag, link address, and updates latest
+    if code_pointer == None:
+        code_pointer = enter
+
+    create(name, immediate_flag, code_pointer) # adds name, imm flag, link address, and updates latest
 
     if code_pointer == variable: # this word is a VARIABLE
-        push(variable)
-        comma()
-        push(data_field)
-        comma()
+        _comma(data_field)
 
-    elif code_pointer != None: # this word has a function pointer (not composite)
-        push(code_pointer)
-        comma()
-
-    else: # this is a composite word
-        push(enter)
-        comma()
+    elif code_pointer == enter: # this is a composite word
         for word in data_field:
             push(word)
             find()
-            found = pop() #assume it is found for now
-            comma()
-        push(exit)
-        comma()
+            _comma(pop())#assume it is found for now
+        _comma(exit)
 
     global HERE
     HERE = len(dictionary) - 1 # update HERE
@@ -110,49 +124,72 @@ def fetch():
     contents = dictionary[address]
     push(contents)
 
+def find():
+
+    new_word = pop()
+    current_index = LATEST
+    while current_index != None: # -1 means we are at the first word in the dictionary
+        current = dictionary[current_index]
+
+        if current.name == new_word:
+            push(current_index)
+            if current.immediate_flag == 1:
+                push(-1)
+            else:
+                push(1)
+            return
+
+        current_index = current.link_address
+
+    push(new_word)
+    push(0)
 
 ################### COMPILING AND INTERPRETING ##############################
 
 def exit():
     global PC
     PC = pop_RS() # set PC to top of return stack
-    if PC != -1: # if we are returning to a composite word thread
+    if PC != None: # if we are returning to a composite word thread
         next_word() # next word takes us to the next word in the composite word thread
 
 def enter():
     global PC
+    print('\n\n {{{{{}}}}} in enter, old pc is ', PC)
     push_RS(PC) # push PC to return stack so we can return to it
     PC = index # set PC to current index/ address in the dictionary
+    print('\n\n {{{{{}}}}}  in enter, new pc is ', PC)
     next_word()
 
 def next_word():
     global PC
-    if PC != -1: # so that it only does anything if we r in a thread
-        # ie if PC is being used to store our place in a thread?
-        # is there a better solution than comparing to -1?
+    print('\n in next word, PC : ', PC)
+    if PC != None:
         PC = PC + 1
         push(PC)
         execute()
 
 def execute():
     global index
-    global index2
     tos = pop()
-    index2 = tos # index2 keeps track of where we are in the dictionary before
-    # we potentially follow an index to another cell looking for a function pointer
-
-    if not isinstance(dictionary[tos], int): #(not an int ie not an index/address)
-        # the cell contains the function pointer we want
-        index = tos
-
-    else:
-        # The cell contains the index of another cell, which contains the function pointer we want.
+    index = tos
+    if not isinstance(dictionary[tos], int):
+        if isinstance(dictionary[tos], Header):
+            print(dictionary[tos].code_pointer)
+            dictionary[tos].code_pointer()
+        else:
+            print(dictionary[tos])
+            dictionary[tos]()
+    if isinstance(dictionary[tos], int):
         index = dictionary[tos]
+        if isinstance(dictionary[dictionary[tos]], Header):
+            print(dictionary[dictionary[tos]].code_pointer)
+            dictionary[dictionary[tos]].code_pointer()
+        else:
+            print(dictionary[dictionary[tos]])
+            dictionary[dictionary[tos]]()
 
-    # for debgging:
-    word_trace.append([[index2, index, dictionary[index]], [PC], stack[:], return_stack[:]])
 
-    dictionary[index]() # execute the function we want
+
 
 def get_word():
     global input_stream
@@ -166,22 +203,6 @@ def get_word():
             input_stream = input_stream.strip() # remove white space
             return
 
-
-def find():
-    new_word = pop()
-    current_link_index = LATEST
-    while current_link_index != -1: # -1 means we are at the first word in the dictionary
-        current_name = dictionary[current_link_index-2] # name is stored two cells above link address
-        if current_name == new_word:
-            push(current_link_index + 1) # code pointer is stored one cell after link address
-            if dictionary[current_link_index-1] == 1: # word has immediate flag
-                push(-1)
-            else: # no immediate flag
-                push(1)
-            return
-        current_link_index = dictionary[current_link_index]
-    push(new_word)
-    push(0)
 
 def number():
     string_of_number = pop()
@@ -208,23 +229,19 @@ def set_compile():
 
 def colon():
     set_compile()
-    create('/', 0) # '/' is a place holder
+    create(None, 0, None) # '/' is a place holder
 
 def semicolon():
     set_interpret()
-    push(exit)
-    comma()
+    _comma(exit)
 
 def compile_word():
     get_word()
     word = pop()
-    if dictionary[-3] == '/':
-        # add name to dictionary entry
-        dictionary[-3] = word
-        push(enter)
-        comma()
+    if dictionary[LATEST].name == None:
+        dictionary[LATEST].name = word
+        dictionary[LATEST].code_pointer = enter
     else:
-        # add code pointer to dictionary entry
         push(word)
         find()
         found = pop()
@@ -236,7 +253,7 @@ def compile_word():
             literal() # word isn't found, it is a number
 
 def doliteral():
-    push(int(dictionary[index2+1])) # push number stored in the cell after doliteral code pointer
+    push(int(dictionary[index+1])) # ### index2 ? push number stored in the cell after doliteral code pointer
     global PC
     PC = PC + 1 # increment PC by 1 (next_word will increment it by one again)
     next_word()
@@ -247,7 +264,7 @@ def literal():
     dictionary.append(x)
 
 def variable():
-    push(index2-1)
+    push(index-1) ### index2 ?
 
 def quit():
     global return_stack
@@ -265,17 +282,13 @@ def quit():
 # The cells after Qbranch and branch will store the index/ address to jump to
 # if jumping past the current block
 def if_():
-    push(Qbranch)
-    comma()
-    push(None)
-    comma()
+    _comma(Qbranch)
+    _comma(None)
     push(len(dictionary)-1)
 
 def else_():
-    push(branch)
-    comma()
-    push(None)
-    comma()
+    _comma(branch)
+    _comma(None)
     push(len(dictionary)-1)
 
 def then():
@@ -495,7 +508,7 @@ def print_debug(): # FOR DEBUGGING
 
 ################# FOR RUNNING REPL #################
 
-input_stream = ""
+input_stream =  ": DOUBLE DUP + ; : TWICE DOUBLE DUP ; : SQUARED DUP * ; : CUBED DUP SQUARED * ; 2 CUBED 3 SQUARED 5 TWICE .S "
 output = ""
 
 def webrepl(input_line, consistent_dictionary, consistent_stack):

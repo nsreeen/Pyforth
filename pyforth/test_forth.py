@@ -19,7 +19,7 @@ class TestStacks:
         assert forth.pop_RS() == 2
         assert forth.pop_RS() == 1
 
-class TestDictionary:
+"""class TestDictionary:
     def test_add_tracking_variables_start_of_dictionary(self):
         assert forth.HERE == len(forth.dictionary) - 1 #HERE
         assert forth.PC == -1 #PC
@@ -33,7 +33,7 @@ class TestDictionary:
         assert min(addresses) == -1
         assert max(addresses) < len(forth.dictionary)
         print(addresses, '\n', sorted(addresses, reverse=True))
-        assert addresses == sorted(addresses, reverse=True)
+        assert addresses == sorted(addresses, reverse=True)"""
 
 
 class TestThreading:
