@@ -13,7 +13,7 @@ To run the REPL:
 
 To interpret a Forth file and run the REPL:
 1) Save the file in your copy of this directory
-2) Type ```python pyforth/pyforth.py <filename.4th>```
+2) Type ```python pyforth/pyforth.py <filename>```
 
 
 
