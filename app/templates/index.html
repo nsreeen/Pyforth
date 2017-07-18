@@ -13,7 +13,7 @@
            }
            .header {
              margin-top: 25px;
-             margin-bottom: 15px;
+             margin-bottom: 45px;
            }
            body {
              font-family: 'Source Code Pro', monospace;
@@ -21,7 +21,7 @@
            textarea {
              margin-top: 10px;
              width: 100%;
-             height: 30%;
+             min-height: 100px;
            }
            li {
              list-style: none;
@@ -29,41 +29,67 @@
              margin-right: 15px;
              margin-top: 5px;
            }
+           .panel {
+             display: none;
+           }
+           a {
+             color: black;
+           }
+           .submit {
+             float: right;
+             padding: 3px;
+             margin-top: 1px;
+             border: 1px solid Grey;
+             border-radius: 2px;
+           }
+           .link:hover, a:hover {
+             text-decoration: underline;
+             color: Teal;
+           }
            </style>
     </head>
 <body>
 <div id="body" class="container-fluid">
 
   <div class="header row">
-    <div class="col-sm-6 col-sm-offset-3">
+    <div class="col-sm-6 col-sm-offset-2">
       <h1>Pyforth</h1>
     </div>
     <div class="col-sm-3">
-      <li>View on Github</li>
-      <li>What is Pyforth?</li>
+      <li><a href="https://github.com/Nasreen123/Pyforth/tree/more-pythonic">view on Github</a></li>
+      <li class="link" id="show-what-is">what is Pyforth?</li>
+      <li class="link" id="show-help">help</li>
     </div>
   </div>
 
 
-  <div class="row"><div class="col-sm-6 col-sm-offset-3">
+  <div class="row">
+
+  <div class="col-sm-5 col-sm-offset-2">
     <div id="logbox">
       {% for line in log_text %}
         <p> {{ line }} </p>
       {% endfor %}
     </div>
-  </div></div>
 
-
-  <div class="row"><div class="col-sm-6 col-sm-offset-3">
       <span id="message-area"></span>
       <textarea id="input-stream"></textarea> <br>
-      <a href="javascript:send_input();">submit</a>
 
-      <form id="enter-form">
+      <form id="enter-form"><a class="link submit" href="javascript:send_input();">submit</a>
       <input type="checkbox" id="enter" name="enter" value="enter" > <label for="enter"> Enter to submit </label>
       </form>
 
-  </div></div>
+  </div> <!-- end col -->
+
+  <div class="col-sm-3 col-sm-offset-1">
+    <div class="panel what-is"> Pyforth is a micro implementation of Forth, written in Python.</div>
+    <div class="panel help">
+      <p>Type Forth code in the text area, and then submit it to interpret.</p>
+      <p>Your input and the output of your code will show up above the text area.</p>
+    </div>
+  </div> <!-- end col -->
+
+</div> <!-- end row -->
 
 
 
@@ -74,21 +100,39 @@
 <script type='text/javascript'>
 $(document).ready(function() {
 
-    var compile = 1;
-
-    $('input[name=enter]').change(function(){
+    $('input[name=enter]').change(function () {
         enter = ($('#enter').is(":checked"))
         console.log(enter);
     });
 
     $("#input-stream").keypress(function (e) {
-        if(enter == true && e.which == 13 && !e.shiftKey) {
+        if (enter == true && e.which == 13 && !e.shiftKey) {
             // $(this).closest("form").submit();
             send_input();
             e.preventDefault();
             return false;
         }
     });
+
+    $("#show-help").click(function () {
+        console.log("logged")
+        if ( $(".help").css("display") == "none" ) {
+          $(".what-is").css("display", "none");
+          $(".help").show(); //css("display", "block");
+        } else {
+          $(".help").css("display", "none");
+        }
+    })
+
+    $("#show-what-is").click(function () {
+        console.log("logged")
+        if ( $(".what-is").css("display") == "none" ) {
+          $(".help").hide();
+          $(".what-is").show(); //css("display", "block");
+        } else {
+          $(".what-is").css("display", "none");
+        }
+    })
 
 });
 
