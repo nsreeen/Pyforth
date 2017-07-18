@@ -4,14 +4,6 @@ from contextlib import redirect_stdout
 ################### PARAM STACK ###################
 stack = [] # using stack[-1] instead of a stack pointer
 
-def print_stack():
-    global output
-    stri = ""
-    stri = stri + "<" + str(len(stack)) + "> "
-    for item in stack:
-        stri = stri + str(item) + " "
-    output += stri
-
 def push(item):
     stack.append(item)
 
@@ -84,6 +76,17 @@ def comma():
 def _comma(entry):
     dictionary.append(entry)
     HERE()
+
+def add_to_dictionary_(name, immediate_flag=0):
+    def outer_wrapper_(wrapped_function):
+        def wrapper_(*args, **kwargs):
+            result = wrapped_function(*args, **kwargs)
+            add_word(name, immediate_flag, wrapped_function, None)
+            return result
+        return wrapper_
+    return outer_wrapper_
+
+
 
 def create(name, immediate_flag):
     new_entry_header = EntryHeader(name, immediate_flag, LATEST)
@@ -227,7 +230,7 @@ def quit():
     return_stack = []
     global input_stream
     input_stream = input_stream.split()
-    print('input stream: ', input_stream)
+    #print('input stream: ', input_stream)
     while len(input_stream):
         if STATE:
             compile_word()
@@ -422,7 +425,7 @@ def greaterthan():
     next_word()
 
 ################ ADD NATIVE WORDS TO DICTIONARY ####################
-add_word('.S', 0, print_stack, [])
+#add_word('.S', 0, print_stack, [])
 add_word('DUP', 0, dup, [])
 add_word('*', 0, mul, [])
 add_word('+', 0, add, [])
@@ -456,6 +459,14 @@ add_word('+LOOP', 0, plus_loop, None)
 add_word('I', 0, I, None)
 add_word('.D', 0, print_dictionary, [])"""
 
+@add_to_dictionary_('.S')
+def print_stack():
+    global output
+    stri = ""
+    stri = stri + "<" + str(len(stack)) + "> "
+    for item in stack:
+        stri = stri + str(item) + " "
+    output += stri
 
 def print_debug(): # FOR DEBUGGING
     print(' [index2, index, dictionary[index]] [PC] [stack]   [return_stack] ')
@@ -465,7 +476,7 @@ def print_debug(): # FOR DEBUGGING
 
 ################# FOR RUNNING REPL #################
 
-input_stream =  "1 2 3 + .S"
+input_stream =  "" #1 2 3 + .S"
 output = ""
 
 def webrepl(input_line, consistent_dictionary, consistent_stack):
