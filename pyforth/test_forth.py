@@ -43,7 +43,16 @@ class TestThreading:
         assert forth.pop() == 10
         assert forth.pop() == 10
 
-    def test_define_multiple_words(self):
+class TestBranching:
+    def test_if_else(self):
+        forth.input_stream = ": TEST DUP 7 < IF DUP 6 DUP ELSE 100 * THEN ; 5 TEST"
+        forth.quit()
+        assert forth.pop() == 6
+        assert forth.pop() == 6
+        assert forth.pop() == 5
+        assert forth.pop() == 5
+
+"""    def test_define_multiple_words(self):
         forth.input_stream = ": DOUBLE DUP + ; : TWICE DOUBLE DUP ; : SQUARED DUP * ; : CUBED DUP SQUARED * ; 2 CUBED 3 SQUARED 5 TWICE .S "
         forth.quit() #8 9 10 10
         assert forth.pop() == 10
@@ -51,24 +60,6 @@ class TestThreading:
         assert forth.pop() == 9
         assert forth.pop() == 8
 
-    def test_if_else(self):
-        forth.input_stream = ": TEST IF 7 ELSE 100 THEN ; 1 0 TEST "
-        forth.quit()
-        assert forth.pop() == 100
-        assert forth.dictionary[-10].__name__ == "enter"
-        assert forth.dictionary[-9].__name__ == "Qbranch"
-        assert forth.dictionary[-7].__name__ == "doliteral"
-        assert int(forth.dictionary[-6]) == 7
-        assert forth.dictionary[-5].__name__ == "branch"
-        assert forth.dictionary[-3].__name__ == "doliteral"
-        assert int(forth.dictionary[-2]) == 100
-        assert forth.dictionary[-1].__name__ == "exit"
-        forth.input_stream = ": TEST DUP 7 < IF DUP 6 DUP ELSE 100 * THEN ; 5 TEST"
-        forth.quit()
-        assert forth.pop() == 6
-        assert forth.pop() == 6
-        assert forth.pop() == 5
-        assert forth.pop() == 5
 
     def test_do_loop(self):
         forth.input_stream = ": TEST 5 1 DO I LOOP ; TEST"
@@ -92,27 +83,4 @@ class TestThreading:
 
 
 
-
-
-"""### TESTS
-def test_add_words():
-    push(1)
-    push(2)
-    push(3)
-    #print('sp: ', stack[SP])
-    pop()
-    print_stack()
-    #print('sp: ', stack[SP])
-    dup()
-    mul()
-    print_stack()
-
-
-def test_linked_list():
-    #print('Test the linked list:')
-    current = LATEST
-    #print(current)
-    while current != None:
-        current = dictionary[current]
-        #print(current)
 """

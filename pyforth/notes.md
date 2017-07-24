@@ -67,19 +67,11 @@ interpret_word does the following:
 
 
 # execute
-Execute pops an address from the stack.  The cell at the address in the dictionary contains one of the following:
-
-1) the word header of the word that has the code we want
-(we want to execute the thing in the cell after the address: dictionary[address+1]())
-
-2) another index in the dictionary, which contains the word header of the word that has the code we want
-(we want to go to the index inside the cell address, and execute the thing in the cell after it: dictionary[dictionary[address]+1])
-
-So either way we want to add one to the address we execute to account for the the code to be executed being in the cell after the header (which we get when we look up the word in the dictionary)
-
-To check which, we check if it's an int or not (number 2 is an int, number 1 is not).  We then update_index (the global variable index) with the address of the code pointer we want, and call that
-
-
+Execute pops an index from the stack.  That index points to a cell that might contain:
+* a function pointer - in which case we want to execute the contents
+* a WordHeader object - in which case we want to execute the contents of the cell after
+* an index to another cell - in which we want to get to the contents of that other cell
+* an index which points to another cell, which points to another cell <- avoid this!
 
 # Compiling new words
 
@@ -88,5 +80,17 @@ To check which, we check if it's an int or not (number 2 is an int, number 1 is 
 index: When a word is executed, index is updated with that words index.  
 
 # IF ELSE THEN
+
+IF:
+appends Qbranch
+appends an empty cell (containing None)
+and pushes the current index to the stack (by calling HERE())
+
+ELSE:
+appends branch
+appends an empty cell
+pushes the current index to the stack
+
+
 
 # DO LOOP

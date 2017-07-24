@@ -98,7 +98,6 @@ def find():
     push(0)
 
 ################### INTERPRETING AND COMPILING ##############################
-
 def quit():
     return_stack = []
     global input_stream
@@ -132,15 +131,15 @@ def number():
 
 def execute():
     addr = pop()
-
+    print("in execute, addr = ", addr)
     # addr itself contains an int ie another address
     if isinstance(dictionary[addr], int):
         update_index(dictionary[addr]+1)
 
     # assume cell after addr is an int
-    else:
+    if isinstance(dictionary[addr], WordHeader):
         update_index(addr+1)
-
+    print("dictionary[index] = ", dictionary[index])
     dictionary[index]()
 
 def set_interpret():
@@ -176,7 +175,7 @@ def compile_word():
             literal() # word isn't found, it is a number
 
 def doliteral():
-    number = int(dictionary[index+1])
+    number = int(dictionary[PC+1])
     push(number)
     update_PC(PC + 1) # because the next cell is the number
     next_word()
@@ -184,7 +183,7 @@ def doliteral():
 def literal():
     x = pop()
     _comma(doliteral)
-    _comma(x)
+    _comma(str(x))
 
 ################### THREADING ##############################
 
@@ -205,7 +204,66 @@ def next_word():
     if PC != None:
         update_PC(PC + 1)
         push(PC)
+        print('PC is ', PC)
         execute()
+################## BRANCHING ###########################
+
+def if_():
+    _comma(4) #hard coded addres to qbranch
+    _comma(None)
+    HERE()
+    print_stack()
+
+def else_():
+    _comma(6) # hard coded address to branch
+
+    # deals with IF
+    HERE()
+    #push(1)
+    #sub()
+    swap()
+    print_stack()
+    store()
+    # set up for THEN to deal with ELSE
+    _comma(None)
+    HERE()
+    print_stack()
+
+def then():
+    HERE()
+    swap()
+    print_stack()
+    store()
+
+def Qbranch():
+    # Increment the PC by 1 -> it will point to the cell directly after Qbranch,
+    # which stores the index/ address that points to the index/ address to jump to
+    #update_PC(PC + 1)
+    print("\n in QB")
+    print("stack: ", stack)
+    flag = pop()
+    print("flag = ", flag, " PC = ", PC)
+    push_RS(flag) # put in return stack so branch can check it later
+    if flag != 0: # true -> carry out first block
+        update_PC(PC+1) # PC increments by one to enter first block
+    else:
+        update_PC(dictionary[PC+1]-1)
+    print("PC = ", PC)
+    next_word()
+
+def branch():
+    print("stack: ", stack)
+    print("\n in B")
+    print("PC = ", PC)
+    flag = pop_RS()
+    if flag != 0:
+        update_PC(dictionary[PC+1]-1)
+    else:
+        update_PC(PC+1)
+    print("flag = ", flag, " PC = ", PC)
+    next_word()
+
+
 
 ################### NATIVE FUNCTIONS ###################
 def bye():
@@ -296,12 +354,13 @@ def fetch():
 
 #################### PRINTING AND DEBUGGING ###################
 def print_stack():
-    global output
+    #global output
     stri = ""
     stri = stri + "<" + str(len(stack)) + "> "
     for item in stack:
         stri = stri + str(item) + " "
-    output += stri
+    #output += stri
+    print(stri)
 
 def print_dictionary(last_section_only=0):
     if last_section_only == 1:
@@ -310,12 +369,15 @@ def print_dictionary(last_section_only=0):
         start = 0
     for i in range(start, len(dictionary)):
         if isinstance(dictionary[i], WordHeader):
-            cell = str(dictionary[i].name) + " " + str(dictionary[i].immediate_flag) + " " + str(dictionary[i].link_address)
+            try:
+                cell = str(dictionary[i].name)
+            except:
+                cell = str(dictionary[i])
         else:
             cell = dictionary[i]
         x = ""
         if cell != 0 and isinstance(cell, int):
-            x = "    | " + str(dictionary[cell]) + str(dictionary[cell].name)
+            x = "    | " + str(dictionary[cell])
         print(i, cell, x)
 
 
@@ -335,11 +397,12 @@ add_word(';', semicolon, immediate_flag = 1)
 add_word('!', store)
 add_word('@', fetch)"""
 
-words_to_add_to_dictionary = [('EXIT', exit),
+words_to_add_to_dictionary = [('EXIT', exit), ('DL', doliteral),
+('QBRANCH', Qbranch),('BRANCH', branch),
 ('.S', print_stack), ('DUP', dup), ('*', mul),
 ('+', add), ('-', sub), ('/', div), ('<', lessthan), ('>', greaterthan),
 ('BYE', bye), (':', colon, 1), (';', semicolon, 1), ('!', store), ('@', fetch),
-('.D', print_dictionary)]
+('.D', print_dictionary), ('IF', if_, 1), ('ELSE', else_, 1), ('THEN', then, 1)]
 
 for word in words_to_add_to_dictionary:
     name = word[0]
@@ -352,10 +415,15 @@ for word in words_to_add_to_dictionary:
 
 #########################################
 
-input_stream = ""
+#input_stream = ": TEST DUP 7 < IF DUP 6 DUP ELSE 100 * THEN ; 5 TEST"
 
 
 if __name__ == "__main__":
+    input_stream = ": TEST IF 5 ELSE 10 THEN 15 ; 1 0 TEST"
+    quit()
+
+
+
     # if there is a forth file, open that
     if len(sys.argv) > 1:
         filename = sys.argv[1]
