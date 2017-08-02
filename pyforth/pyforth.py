@@ -22,7 +22,20 @@ def RPOP():
     return tos
 
 def RCLEAR():
-    Rstack = []
+    Rstack.clear()
+
+def toR(): # >R ( x - R:x )
+    x = POP()
+    RPUSH(x)
+
+def fromR(): # R> ( R:x - x )
+    x = RPOP()
+    PUSH(x)
+
+def Rtop(): # ( R:x - R:x x )
+    x = RPOP()
+    PUSH(x)
+    RPUSH(x)
 
 ################### Dictionary ###################
 word_trace = [] #for debugging
@@ -72,6 +85,15 @@ def CREATE():
     COMMA()
     incrementLATEST()
     print('in CREATE, dictionary[LATEST].name = ', dictionary[LATEST].name)
+
+def STORE(): # ( contents address -- )
+    addr = POP()
+    content = POP()
+    dictionary[addr] = content
+
+def FETCH(): # ( address - contents )
+    addr = POP()
+    PUSH(dictionary[address])
 
 def FIND():
     word = POP()
@@ -203,42 +225,35 @@ def JUMP():
         dictionary[W]()
 
 ######################## BRANCHING ######################
+def ADD1():
+    PUSH(1)
+    ADD()
+
+def OFFSET():
+    SUB()
+
 def IF():
     _COMMA(QBRANCH)
     _COMMA(None)
     HERE()
 
+def RESOLVE():
+    ADD1() # now we should have prev cell and current +1
+    OVER()
+    OFFSET()
+    SWAP()
+    STORE()
+
 def ELSE():
     _COMMA(BRANCH)
     _COMMA(None)
     HERE()
-
-    PUSH(1)
-    ADD() # now we should have prev cell and current +1
-    printS() # check
-
-    # since need to implement SWAP, TUCK, and STORE
-    a = POP()
-    b = POP()
-    diff = a - b
-    addr = b
-    dictionary[addr] = diff
-
+    RESOLVE()
     HERE()
 
 def THEN():
     HERE()
-
-    PUSH(1)
-    ADD() # now we should have prev cell and current +1
-    printS() # check
-
-    # since need to implement SWAP, TUCK, and STORE
-    a = POP()
-    b = POP()
-    diff = a - b
-    addr = b
-    dictionary[addr] = diff
+    RESOLVE()
 
 def QBRANCH():
     print('in QBRANCH, PC is ', PC)
@@ -253,30 +268,86 @@ def QBRANCH():
     NEXT()
 
 def BRANCH():
-    print('in BRANCH')
+    print('in BRANCH, PC and W are: ', PC, W)
     printS()
     update_PC(PC+dictionary[PC])
     NEXT()
 
+def DO():
+    print('\nstart of do, PC and W are: ', PC, W)
+    I = POP()
+    J = POP()
+    addr = PC - 1
+    print('in DO, I J and addr are: ', I, J, addr)
+    RPUSH(J)
+    RPUSH(I)
+    RPUSH(addr)
+    NEXT()
 
-################### NATIVE FUNCTIONS ###################
+def LOOP():
+    print('\nstart of loop, PC and W are: ', PC, W)
+    addr = RPOP()
+    I = RPOP()
+    J = RPOP()
+    I = I + 1
+    print('in LOOP, I J and addr are: ', I, J, addr)
+    if I != J:
+        print('I and J are not equal')
+        update_PC(addr)
+        PUSH(J)
+        PUSH(I)
+    print('PC and W are: ', PC, W)
+    NEXT()
+
+def I():
+    print('in I')
+    i = Rstack[-2]
+    PUSH(i)
+    NEXT()
+
+def J():
+    j = Rstack[-3]
+    PUSH(j)
+    NEXT()
+
+
+################### STACK  FUNCTIONS ###################
 
 def DUP():
     top = stack[-1]
     PUSH(top)
     NEXT()
 
+def SWAP():
+    a = POP() #top
+    b = POP() #second
+    PUSH(a)
+    PUSH(b)
+
+def OVER():
+    top = POP()
+    second = POP()
+    PUSH(second)
+    PUSH(top)
+    PUSH(second)
+
 def MUL():
     a = POP()
     b = POP()
     print('in MUL, a and b are: ', a, b)
-    PUSH(a * b)
+    PUSH( a * b )
     NEXT()
 
 def ADD():
     a = POP()
     b = POP()
-    PUSH(a + b)
+    PUSH( a + b )
+    NEXT()
+
+def SUB():
+    a = POP()
+    b = POP()
+    PUSH( b - a )
     NEXT()
 
 def EQUALS():
@@ -288,6 +359,41 @@ def EQUALS():
         PUSH(0)
     NEXT()
 
+def ROT(): # ( c b a - b a c )
+    a = POP()
+    b = POP()
+    c = POP()
+    PUSH(b)
+    PUSH(a)
+    PUSH(c)
+
+def DROP(): # ( a - )
+    POP()
+
+def NIP(): # ( a b - b )
+    b = POP()
+    POP()
+    PUSH(b)
+
+def TUCK(): # ( a b - b a b )
+    b = POP()
+    a = POP()
+    PUSH(b)
+    PUSH(a)
+    PUSH(b)
+
+def TWODUP(): # ( a b - a b a b )
+    b = POP()
+    a = POP()
+    PUSH(a)
+    PUSH(b)
+    PUSH(a)
+    PUSH(b)
+
+def MOD(): # ( a b - a%b )
+    b = POP()
+    a = POP()
+    PUSH(a%b)
 #################### PRINTING AND DEBUGGING ###################
 def printS():
     #global output
@@ -297,6 +403,7 @@ def printS():
         stri = stri + str(item) + " "
     #output += stri
     print(stri)
+    NEXT()
 
 def printD(last_section_only=0):
     if last_section_only == 1:
@@ -320,8 +427,12 @@ def printD(last_section_only=0):
 ################ ADD NATIVE WORDS TO DICTIONARY ####################
 
 words_to_add_to_dictionary = [('.S', printS), ('DUP', DUP), ('*', MUL),
-('+', ADD), (':', COLON, 1), (';', SEMICOLON, 1), ('.D', printD), ('=', EQUALS),
-('IF', IF, 1), ('ELSE', ELSE, 1), ('THEN', THEN, 1)]
+('+', ADD), ('-', SUB), (':', COLON, 1), (';', SEMICOLON, 1), ('.D', printD),
+('=', EQUALS), ('IF', IF, 1), ('ELSE', ELSE, 1), ('THEN', THEN, 1), ('!', STORE),
+('@', FETCH), ('OVER', OVER), ('SWAP', SWAP), ('ROT', ROT), ('DROP', DROP),
+('NIP', NIP), ('TUCK', TUCK), ('2DUP', TWODUP), ('MOD', MOD), ('R0', RCLEAR),
+('>R', toR), ('R>', fromR), ('R@', Rtop), ('.S', printS), ('DO', DO),
+('LOOP', LOOP), ('I', I), ('J', J)]
 
 for word in words_to_add_to_dictionary:
     if len(word) > 2:
@@ -336,5 +447,5 @@ for word in words_to_add_to_dictionary:
 
 
 if __name__ == "__main__":
-    input_stream = " : ZERO? 0 = IF 1 ELSE 0 THEN ; 1 .S ZERO? .S "
+    input_stream = " : TESTLOOP DO I .S LOOP ; 5 1 .S TESTLOOP "
     QUIT()
