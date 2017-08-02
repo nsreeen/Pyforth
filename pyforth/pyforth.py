@@ -4,22 +4,25 @@ from contextlib import redirect_stdout
 ################### PARAM STACK ###################
 stack = [] # using stack[-1] instead of a stack pointer
 
-def push(item):
+def PUSH(item):
     stack.append(item)
 
-def pop():
+def POP():
     tos = stack.pop()
     return tos
 
 ################### RETURN stack ###################
-return_stack = []
+Rstack = []
 
-def push_RS(item):
-    return_stack.append(item)
+def RPUSH(item):
+    Rstack.append(item)
 
-def pop_RS():
-    tos = return_stack.pop()
+def RPOP():
+    tos = Rstack.pop()
     return tos
+
+def RCLEAR():
+    Rstack = []
 
 ################### Dictionary ###################
 word_trace = [] #for debugging
@@ -27,120 +30,101 @@ STATE = 0 # 0 means interpret mode
 
 LATEST = None
 PC = None
-index = None
+W = None # 'working register'
 
 def HERE():
-    push(len(dictionary) - 1)
+    PUSH(len(dictionary) - 1)
 
-def update_LATEST():
+def incrementLATEST():
     global LATEST
     HERE()
-    LATEST = pop()
+    print('HERE is ', stack[0])
+    LATEST = POP()
 
 def update_PC(new_PC):
     global PC
     PC = new_PC
 
-def update_index(new_index):
-    global index
-    index = new_index
+def update_W(new_W):
+    global W
+    W = new_W
 
 dictionary = []
 
 class WordHeader():
-    def __init__(self, name, immediate_flag, link_address):
+    def __init__(self, name, link_address, code_pointer, immediate_flag=0):
         self.name = name
         self.immediate_flag = immediate_flag
         self.link_address = link_address
+        self.code_pointer = code_pointer
 
 
-#####################  ADDING TO DICTIONARY  ######################
+#####################  ADDING TO DICTIONARY  and INPUT STREAM ##################
+def COMMA():
+    dictionary.append(POP())
 
-def comma():
-    tos = pop()
-    dictionary.append(tos)
+def _COMMA(x):
+    dictionary.append(x)
 
-def _comma(entry):
-    dictionary.append(entry)
+def CREATE():
+    newWH = WordHeader(None, LATEST, ENTER)
+    PUSH(newWH)
+    COMMA()
+    incrementLATEST()
+    print('in CREATE, dictionary[LATEST].name = ', dictionary[LATEST].name)
 
-def add_word_header(name, immediate_flag):
-    new_word_header = WordHeader(name, immediate_flag, LATEST)
-    dictionary.append(new_word_header)
-    update_LATEST()
-
-def add_word(name, code_pointer, immediate_flag=0, data_field=None):
-    add_word_header(name, immediate_flag) # adds name, imm flag, link address, and updates latest
-    _comma(code_pointer)
-    if data_field and code_pointer == variable:
-        _comma(data_field)
-    elif data_field:
-        for word in data_field:
-            push(word)
-            find()
-            pop() #assume it is found for now
-            _comma(pop())
-        _comma(exit)
-
-def find():
-    word = pop()
-    current_index = LATEST
-    while current_index != None: # None means we are at the first word in the dictionary
-        current = dictionary[current_index]
-        if current.name == word:
-            push(current_index)
-            if current.immediate_flag == 1:
-                push(-1)
+def FIND():
+    word = POP()
+    current = LATEST
+    while current != None: # None means we are at the first word in the dictionary
+        if dictionary[current].name == word:
+            PUSH(current)
+            if dictionary[current].immediate_flag == 1:
+                PUSH(-1)
             else:
-                push(1)
+                PUSH(1)
             return
-        current_index = current.link_address
-    push(word)
-    push(0)
+        current = dictionary[current].link_address
+    PUSH(word)
+    PUSH(0)
 
-################### INTERPRETING AND COMPILING ##############################
-def quit():
-    return_stack = []
+def ACCEPT():
     global input_stream
     input_stream = input_stream.split()
-    while len(input_stream):
-        if STATE:
-            compile_word()
-        else:
-            interpret_word()
 
-def interpret_word():
-    get_word()
-    print('\n word is: ', stack[-1])
-    find()
-    found = pop()
-    if found == 1 or found is -1: # word was found, execute in interpret mode regardless of immediate flag
-        execute()
-    else:
-        number()
-
-def get_word():
+def WORD():
     global input_stream
-    word = input_stream[0].strip()
+    print('in WORD, new word is ', input_stream[0])
+    PUSH(input_stream[0])
     input_stream = input_stream[1:]
-    push(word)
 
-def number():
-    str_number = pop()
-    number = int(str_number)
-    push(number)
+################### INTERPRETING AND COMPILING ##############################
 
-def execute():
-    addr = pop()
-    print("in execute, addr = ", addr)
-    # addr itself contains an int ie another address
-    if isinstance(dictionary[addr], int):
-        update_index(dictionary[addr]+1)
+def QUIT():
+    RCLEAR()
+    ACCEPT()
+    while input_stream:
+        if STATE:
+            COMPILE()
+        else:
+            INTERPRET()
 
-    # assume cell after addr is an int
-    if isinstance(dictionary[addr], WordHeader):
-        update_index(addr+1)
-    print("dictionary[index] = ", dictionary[index])
-    dictionary[index]()
+def INTERPRET():
+    WORD()
+    FIND()
+    found = POP()
+    if found == 1 or found is -1: # word was found, execute in interpret mode regardless of immediate flag
+        EXECUTE()
+    else:
+        NUMBER()
+
+def NUMBER():
+    number = POP()
+    PUSH(int(number))
+
+def EXECUTE():
+    update_W(POP())
+    dictionary[W].code_pointer()
 
 def set_interpret():
     global STATE
@@ -150,210 +134,81 @@ def set_compile():
     global STATE
     STATE = 1
 
-def colon():
+def COLON():
+    CREATE()
     set_compile()
-    add_word(None, enter)
 
-def semicolon():
+def SEMICOLON():
+    PUSH(EXIT)
+    COMMA()
     set_interpret()
-    _comma(0) # index of exit word header
 
-def compile_word():
-    get_word()
-    word = pop()
+def COMPILE():
+    WORD()
+    print(dictionary[LATEST].name)
     if dictionary[LATEST].name == None:
-        dictionary[LATEST].name = word
+        dictionary[LATEST].name = POP()
+        return
+    FIND()
+    flag = POP()
+    if flag == -1: # word has an immediate flag
+        EXECUTE()
+    elif flag == 1: # no immediate flag, word should be compiled
+        COMMA()
     else:
-        push(word)
-        find()
-        found = pop()
-        if found < 0: # word has an immediate flag
-            execute()
-        elif found == 1: # no immediate flag, word should be compiled
-            comma()
-        else:
-            literal() # word isn't found, it is a number
-
-def doliteral():
-    number = int(dictionary[PC+1])
-    push(number)
-    update_PC(PC + 1) # because the next cell is the number
-    next_word()
-
-def literal():
-    x = pop()
-    _comma(doliteral)
-    _comma(str(x))
+        NUMBER()
+        #LITERAL() # word isn't found, it is a number
 
 ################### THREADING ##############################
 
-def exit():
+def EXIT():
     print('in exit, PC is ', PC)
-    update_PC(pop_RS()) # set PC to top of return stack
+    update_PC(RPOP()) # set PC to top of return stack
     if PC != None: # if we are returning to a composite word thread
-        next_word() # next word takes us to the next word in the composite word thread
+        NEXT() # next word takes us to the next word in the composite word thread
 
-def enter():
+def ENTER():
     print('in enter, PC is ', PC)
-    push_RS(PC) # push PC to return stack so we can return to it
-    update_PC(index) # set PC to current index/ address in the dictionary
-    next_word()
+    RPUSH(PC) # push PC to return stack so we can return to it
+    update_PC(W+1) # set PC to current index/ address in the dictionary
+    NEXT()
 
-def next_word():
+def NEXT():
     print('in next_word, PC is ', PC)
     if PC != None:
+        update_W(PC)
         update_PC(PC + 1)
-        push(PC)
-        print('PC is ', PC)
-        execute()
-################## BRANCHING ###########################
+        JUMP()
 
-def if_():
-    _comma(4) #hard coded addres to qbranch
-    _comma(None)
-    HERE()
-    print_stack()
-
-def else_():
-    _comma(6) # hard coded address to branch
-
-    # deals with IF
-    HERE()
-    #push(1)
-    #sub()
-    swap()
-    print_stack()
-    store()
-    # set up for THEN to deal with ELSE
-    _comma(None)
-    HERE()
-    print_stack()
-
-def then():
-    HERE()
-    swap()
-    print_stack()
-    store()
-
-def Qbranch():
-    # Increment the PC by 1 -> it will point to the cell directly after Qbranch,
-    # which stores the index/ address that points to the index/ address to jump to
-    #update_PC(PC + 1)
-    print("\n in QB")
-    print("stack: ", stack)
-    flag = pop()
-    print("flag = ", flag, " PC = ", PC)
-    push_RS(flag) # put in return stack so branch can check it later
-    if flag != 0: # true -> carry out first block
-        update_PC(PC+1) # PC increments by one to enter first block
+def JUMP():
+    if isinstance(dictionary[W], int):
+        dictionary[dictionary[W]].code_pointer()
     else:
-        update_PC(dictionary[PC+1]-1)
-    print("PC = ", PC)
-    next_word()
-
-def branch():
-    print("stack: ", stack)
-    print("\n in B")
-    print("PC = ", PC)
-    flag = pop_RS()
-    if flag != 0:
-        update_PC(dictionary[PC+1]-1)
-    else:
-        update_PC(PC+1)
-    print("flag = ", flag, " PC = ", PC)
-    next_word()
-
+        dictionary[W]()
 
 
 ################### NATIVE FUNCTIONS ###################
-def bye():
-    global running
-    running = False
 
-def dup():
+def DUP():
     top = stack[-1]
-    push(top)
-    next_word()
+    PUSH(top)
+    NEXT()
 
-def rot():
-    # 1 2 3 -> 2 3 1
-    three = pop()
-    two = pop()
-    one = pop()
-    push(two)
-    push(three)
-    push(one)
+def MUL():
+    a = POP()
+    b = POP()
+    PUSH(a * b)
+    NEXT()
 
-def swap():
-    # 2 1 -> 1 2
-    one = pop()
-    two = pop()
-    push(one)
-    push(two)
+def ADD():
+    a = POP()
+    b = POP()
+    PUSH(a + b)
+    NEXT()
 
-def mul():
-    a = pop()
-    b = pop()
-    push(a * b)
-    next_word()
-
-def add():
-    a = pop()
-    b = pop()
-    push(a + b)
-    next_word()
-
-def sub():
-    b = pop() # second number
-    a = pop() # first number
-    push(a - b)
-    next_word()
-
-def div():
-    a = pop()
-    b = pop()
-    push(a / b)
-    next_word()
-
-def equals():
-    a = pop()
-    b = pop()
-    if a == b:
-        push(1)
-    else:
-        push(0)
-    next_word()
-
-def lessthan():
-    b = pop()
-    a = pop()
-    if a < b:
-        push(1)
-    else:
-        push(0)
-    next_word()
-
-def greaterthan():
-    b = pop()
-    a = pop()
-    if a > b:
-        push(1)
-    else:
-        push(0)
-    next_word()
-
-def store():
-    address = pop()
-    contents = pop()
-    dictionary[address] = contents
-
-def fetch():
-    address = pop()
-    contents = dictionary[address]
-    push(contents)
 
 #################### PRINTING AND DEBUGGING ###################
-def print_stack():
+def printS():
     #global output
     stri = ""
     stri = stri + "<" + str(len(stack)) + "> "
@@ -362,7 +217,7 @@ def print_stack():
     #output += stri
     print(stri)
 
-def print_dictionary(last_section_only=0):
+def printD(last_section_only=0):
     if last_section_only == 1:
         start = len(dictionary) - 20
     else:
@@ -382,65 +237,22 @@ def print_dictionary(last_section_only=0):
 
 
 ################ ADD NATIVE WORDS TO DICTIONARY ####################
-"""add_word('.S', print_stack)
-add_word('DUP', dup)
-add_word('*', mul)
-add_word('+', add)
-add_word('-', sub)
-add_word('/', div)
-add_word('=', equals)
-add_word('<', lessthan)
-add_word('>', greaterthan)
-add_word('BYE', bye)
-add_word(':', colon, immediate_flag = 1)
-add_word(';', semicolon, immediate_flag = 1)
-add_word('!', store)
-add_word('@', fetch)"""
 
-words_to_add_to_dictionary = [('EXIT', exit), ('DL', doliteral),
-('QBRANCH', Qbranch),('BRANCH', branch),
-('.S', print_stack), ('DUP', dup), ('*', mul),
-('+', add), ('-', sub), ('/', div), ('<', lessthan), ('>', greaterthan),
-('BYE', bye), (':', colon, 1), (';', semicolon, 1), ('!', store), ('@', fetch),
-('.D', print_dictionary), ('IF', if_, 1), ('ELSE', else_, 1), ('THEN', then, 1)]
+words_to_add_to_dictionary = [('.S', printS), ('DUP', DUP), ('*', MUL),
+('+', ADD), (':', COLON, 1), (';', SEMICOLON, 1), ('.D', printD)]
 
 for word in words_to_add_to_dictionary:
-    name = word[0]
-    code_pointer = word[1]
     if len(word) > 2:
-        immediate_flag = word[2]
+        imm_flag = word[2]
     else:
-        immediate_flag = 0
-    add_word(name, code_pointer, immediate_flag)
+        imm_flag = 0
+    newWH = WordHeader(word[0], LATEST, word[1], imm_flag)
+    _COMMA(newWH)
+    incrementLATEST()
 
 #########################################
 
-#input_stream = ": TEST DUP 7 < IF DUP 6 DUP ELSE 100 * THEN ; 5 TEST"
-
 
 if __name__ == "__main__":
-    input_stream = ": TEST IF 5 ELSE 10 THEN 15 ; 1 0 TEST"
-    quit()
-
-
-
-    # if there is a forth file, open that
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
-        filetext = open(filename, 'r')
-        for line in filetext:
-            input_stream = input_stream + line.strip() + " "
-
-        quit()
-
-    # start the repl
-    running = True
-    while running:
-        input_stream = input()
-        if input_stream:
-            #try:
-            output = ""
-            quit()
-            print("".join(output))
-            #except:
-            #    print('word not in dictionary')
+    input_stream = " : DOUBLE DUP DUP ; 5 DOUBLE .S"
+    QUIT()
