@@ -157,7 +157,18 @@ def COMPILE():
         COMMA()
     else:
         NUMBER()
-        #LITERAL() # word isn't found, it is a number
+        LITERAL() # word isn't found, it is a number
+
+def LITERAL():
+    _COMMA(DOLITERAL)
+    _COMMA(POP())
+
+def DOLITERAL():
+    print('in do lit, will push ', dictionary[PC], ' onto stack')
+    PUSH(dictionary[PC])
+    update_PC(PC+1)
+    print('updated PC to ', PC)
+    NEXT()
 
 ################### THREADING ##############################
 
@@ -168,23 +179,84 @@ def EXIT():
         NEXT() # next word takes us to the next word in the composite word thread
 
 def ENTER():
-    print('in enter, PC is ', PC)
+    print('in enter, PC is ', PC , ' W is ', W)
     RPUSH(PC) # push PC to return stack so we can return to it
     update_PC(W+1) # set PC to current index/ address in the dictionary
     NEXT()
 
 def NEXT():
-    print('in next_word, PC is ', PC)
+    print('in NEXT, PC is ', PC, ' W is ', W)
     if PC != None:
         update_W(PC)
         update_PC(PC + 1)
         JUMP()
 
 def JUMP():
+    # if we are following a thread, W has to follow
     if isinstance(dictionary[W], int):
-        dictionary[dictionary[W]].code_pointer()
+        update_W(dictionary[W])
+
+    # if it's a word header we have to execute the code pointer
+    if isinstance(dictionary[W], WordHeader):
+        dictionary[W].code_pointer()
     else:
         dictionary[W]()
+
+######################## BRANCHING ######################
+def IF():
+    _COMMA(QBRANCH)
+    _COMMA(None)
+    HERE()
+
+def ELSE():
+    _COMMA(BRANCH)
+    _COMMA(None)
+    HERE()
+
+    PUSH(1)
+    ADD() # now we should have prev cell and current +1
+    printS() # check
+
+    # since need to implement SWAP, TUCK, and STORE
+    a = POP()
+    b = POP()
+    diff = a - b
+    addr = b
+    dictionary[addr] = diff
+
+    HERE()
+
+def THEN():
+    HERE()
+
+    PUSH(1)
+    ADD() # now we should have prev cell and current +1
+    printS() # check
+
+    # since need to implement SWAP, TUCK, and STORE
+    a = POP()
+    b = POP()
+    diff = a - b
+    addr = b
+    dictionary[addr] = diff
+
+def QBRANCH():
+    print('in QBRANCH, PC is ', PC)
+    printS()
+    flag = POP()
+    if flag == 0: # condition is FALSE
+        update_PC(PC+dictionary[PC])
+        print('PC changed to : ', PC, ' which has ', dictionary[PC])
+    else: # flag != 0, condition is TRUE
+        update_PC(PC+1) # avoid cell with number in it
+        print('PC changed to : ', PC, ' which has ', dictionary[PC])
+    NEXT()
+
+def BRANCH():
+    print('in BRANCH')
+    printS()
+    update_PC(PC+dictionary[PC])
+    NEXT()
 
 
 ################### NATIVE FUNCTIONS ###################
@@ -197,6 +269,7 @@ def DUP():
 def MUL():
     a = POP()
     b = POP()
+    print('in MUL, a and b are: ', a, b)
     PUSH(a * b)
     NEXT()
 
@@ -206,6 +279,14 @@ def ADD():
     PUSH(a + b)
     NEXT()
 
+def EQUALS():
+    a = POP()
+    b = POP()
+    if a == b:
+        PUSH(1)
+    else:
+        PUSH(0)
+    NEXT()
 
 #################### PRINTING AND DEBUGGING ###################
 def printS():
@@ -231,15 +312,16 @@ def printD(last_section_only=0):
         else:
             cell = dictionary[i]
         x = ""
-        if cell != 0 and isinstance(cell, int):
-            x = "    | " + str(dictionary[cell])
+        #if cell != 0 and isinstance(cell, int):
+        #    x = "    | " + str(dictionary[cell])
         print(i, cell, x)
 
 
 ################ ADD NATIVE WORDS TO DICTIONARY ####################
 
 words_to_add_to_dictionary = [('.S', printS), ('DUP', DUP), ('*', MUL),
-('+', ADD), (':', COLON, 1), (';', SEMICOLON, 1), ('.D', printD)]
+('+', ADD), (':', COLON, 1), (';', SEMICOLON, 1), ('.D', printD), ('=', EQUALS),
+('IF', IF, 1), ('ELSE', ELSE, 1), ('THEN', THEN, 1)]
 
 for word in words_to_add_to_dictionary:
     if len(word) > 2:
@@ -254,5 +336,5 @@ for word in words_to_add_to_dictionary:
 
 
 if __name__ == "__main__":
-    input_stream = " : DOUBLE DUP DUP ; 5 DOUBLE .S"
+    input_stream = " : ZERO? 0 = IF 1 ELSE 0 THEN ; 1 .S ZERO? .S "
     QUIT()
