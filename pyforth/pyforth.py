@@ -424,7 +424,7 @@ def printD(last_section_only=0):
         print(i, cell, x)
 
 
-################ ADD NATIVE WORDS TO DICTIONARY ####################
+################ ADD BUILTIN WORDS TO DICTIONARY ####################
 
 words_to_add_to_dictionary = [('.S', printS), ('DUP', DUP), ('*', MUL),
 ('+', ADD), ('-', SUB), (':', COLON, 1), (';', SEMICOLON, 1), ('.D', printD),
