@@ -54,7 +54,6 @@ def incrementLATEST():
     global LATEST
     HERE()
     LATEST = POP()
-    print('LATEST is ', LATEST)
 
 def update_PC(new_PC):
     global PC
@@ -86,7 +85,6 @@ def CREATE():
     PUSH(newWH)
     COMMA()
     incrementLATEST()
-    print('in CREATE, dictionary[LATEST].name = ', dictionary[LATEST].name)
 
 def STORE(): # ( contents address -- )
     addr = POP()
@@ -118,7 +116,6 @@ def ACCEPT():
 
 def WORD():
     global input_stream
-    print('in WORD, new word is ', input_stream[0])
     PUSH(input_stream[0])
     input_stream = input_stream[1:]
 
@@ -148,7 +145,6 @@ def NUMBER():
 
 def EXECUTE():
     update_W(POP())
-    print('\n IN EXECUTE. W is ', W, ' points to WH with CP: ', dictionary[W].code_pointer)
     dictionary[W].code_pointer()
 
 def set_interpret():
@@ -170,7 +166,6 @@ def SEMICOLON():
 
 def COMPILE():
     WORD()
-    print(dictionary[LATEST].name)
     if dictionary[LATEST].name == None:
         dictionary[LATEST].name = POP()
         return
@@ -189,33 +184,26 @@ def LITERAL():
     _COMMA(POP())
 
 def DOLITERAL():
-    print('in do lit, will push ', dictionary[PC], ' onto stack')
     PUSH(dictionary[PC])
     update_PC(PC+1)
-    print('updated PC to ', PC)
     NEXT()
 
 ################### THREADING ##############################
 
 def EXIT():
-    print('in exit, PC is ', PC)
     update_PC(RPOP()) # set PC to top of return stack
-    print('in exit, PC is NOW', PC)
     if PC != None: # if we are returning to a composite word thread
         NEXT() # next word takes us to the next word in the composite word thread
 
 def ENTER():
-    print('in enter, PC is ', PC , ' W is ', W)
     RPUSH(PC) # push PC to return stack so we can return to it
     update_PC(W+1) # set PC to current index/ address in the dictionary
     NEXT()
 
 def NEXT():
-    print('\n in NEXT, PC is ', PC, ' W is ', W)
     if PC != None:
         update_W(PC)
         update_PC(PC + 1)
-        print('\n PC not None so now: PC is ', PC, ' W is ', W, ' calling jump')
         JUMP()
 
 def JUMP():
@@ -225,10 +213,8 @@ def JUMP():
 
     # if it's a word header we have to execute the code pointer
     if isinstance(dictionary[W], WordHeader):
-        print('in JUMP, will execute: ', dictionary[W].code_pointer)
         dictionary[W].code_pointer()
     else:
-        print('in JUMP, will execute: ', dictionary[W])
         dictionary[W]()
 
 def BYE():
@@ -268,53 +254,38 @@ def THEN():
     RESOLVE()
 
 def QBRANCH():
-    print('in QBRANCH, PC is ', PC)
-    print('stack: ', stack)
     flag = POP()
-    print('flag: ', flag)
     if flag == 0: # condition is FALSE
         update_PC(PC+dictionary[PC])
-        print('PC changed to : ', PC, ' which has ', dictionary[PC])
     else: # flag != 0, condition is TRUE
         update_PC(PC+1) # avoid cell with number in it
-        print('PC changed to : ', PC, ' which has ', dictionary[PC])
-    print('end of QBRANCH, PC now: ', PC)
     NEXT()
 
 def BRANCH():
-    print('in BRANCH, PC and W are: ', PC, W)
     update_PC(PC+dictionary[PC])
-    print('PC is now: ', PC)
     NEXT()
 
 def DO():
-    print('\nstart of do, PC and W are: ', PC, W)
     I = POP()
     J = POP()
     addr = PC - 1
-    print('in DO, I J and addr are: ', I, J, addr)
     RPUSH(J)
     RPUSH(I)
     RPUSH(addr)
     NEXT()
 
 def LOOP():
-    print('\nstart of loop, PC and W are: ', PC, W)
     addr = RPOP()
     I = RPOP()
     J = RPOP()
     I = I + 1
-    print('in LOOP, I J and addr are: ', I, J, addr)
     if I != J:
-        print('I and J are not equal')
         update_PC(addr)
         PUSH(J)
         PUSH(I)
-    print('PC and W are: ', PC, W)
     NEXT()
 
 def I():
-    print('in I')
     i = Rstack[-2]
     PUSH(i)
     NEXT()
@@ -348,7 +319,6 @@ def OVER():
 def MUL():
     a = POP()
     b = POP()
-    print('in MUL, a and b are: ', a, b)
     PUSH( a * b )
     NEXT()
 
