@@ -1,6 +1,6 @@
 # Pyforth
 
-A mini Forth implemented in Python.  Available as a REPL in the terminal and in a web app.
+A mini Forth implemented in Python.  Available as a REPL for the terminal and in a web app.
 
 
 
@@ -23,7 +23,12 @@ https://pyforth.herokuapp.com/
 
 
 
-
-## Currently implemented words
-
-.S DUP * + - / = < > : ; ! @ NUMBER >R R> , IF ELSE THEN BEGIN UNTIL [ ] BYE DO LOOP +LOOP I .D
+## Builtin words implemented so far:
+```
+.S DUP * + - = < >  
+OVER SWAP ROT DROP NIP TUCK 2DUP MOD
+: ; ! @  ,
+>R R> R@ R0
+IF ELSE THEN DO LOOP I J
+.D // prints the dictionary
+```
