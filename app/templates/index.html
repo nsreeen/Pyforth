@@ -10,11 +10,12 @@
              font-family: 'Source Code Pro', monospace;
              font-size: 3em;
              padding: 0;
+             display: inline;
            }
            .header {
-             margin-top: 25px;
-             margin-bottom: 45px;
-             margin-bottom: 15px;
+             margin-top: 50px;
+             margin-bottom: 30px;
+             height: 50px;
            }
            body {
              font-family: 'Source Code Pro', monospace;
@@ -40,13 +41,16 @@
            .submit {
              float: right;
              padding: 3px;
-             margin-top: 1px;
-             border: 1px solid Grey;
-             border-radius: 2px;
+
            }
            .link:hover, a:hover {
              text-decoration: underline;
              color: Teal;
+           }
+           .link {
+             margin-right: 25px;
+             float: right;
+             height: 50px;
            }
            </style>
     </head>
@@ -54,59 +58,59 @@
 <div id="body" class="container-fluid">
 
   <div class="header row">
-    <div class="col-sm-6 col-sm-offset-1">
+    <div class="col-sm-4 col-sm-offset-1">
       <h1>Pyforth</h1>
     </div>
-    <div class="col-sm-3 col-sm-offset-1">
-      <li><a href="https://github.com/Nasreen123/Pyforth/tree/more-pythonic">view on Github</a></li>
+    <div class="col-sm-5 col-sm-offset-1">
+      <!-- <li><a href="https://github.com/Nasreen123/Pyforth/tree/more-pythonic">view on Github</a></li>
       <li class="link" id="show-what-is">what is Pyforth?</li>
-      <li class="link" id="show-help">help</li>
-    <div class="col-sm-6 col-sm-offset-3">
+      <li class="link" id="show-help">help</li> -->
+      <span class="link"><a href="https://github.com/Nasreen123/Pyforth/tree/more-pythonic">view on Github</a></span>
+      <span class="link" id="show-what-is">what is Pyforth?</span>
+      <span class="link" id="show-help">help</span>
+    </div>
+    <!-- <div class="col-sm-6 col-sm-offset-3">
       <h1>Pyforth</h1>
     </div>
     <div class="col-sm-3">
-      <li>View on Github</li>
+      <li>View on Github</li> <
       <li>What is Pyforth?</li>
-    </div>
+      <li>help</li>
+    </div> -->
   </div>
 
 
   <div class="row">
 
-  <div class="col-sm-6 col-sm-offset-1">
+      <div class="col-sm-4 col-sm-offset-2">
 
-  <div class="row"><div class="col-sm-6 col-sm-offset-3">
+            <div id="logbox">
+            </div>
 
-    <div id="logbox">
-      {% for line in log_text %}
-        <p> {{ line }} </p>
-      {% endfor %}
-    </div>
+            <span id="message-area"></span>
 
-  </div></div>
 
-  <span id="message-area"></span>
+            <span id="message-area"></span>
+            <textarea id="input-stream"></textarea> <br>
 
-  <div class="row"><div class="col-sm-6 col-sm-offset-3">
+            <form id="enter-form"><a class="link submit" href="javascript:sendinput();"><b>submit</b></a>
+            <input type="checkbox" id="enter" name="enter" value="enter" > <label for="enter"> Enter to submit </label>
+            </form>
 
-      <span id="message-area"></span>
-      <textarea id="input-stream"></textarea> <br>
+       </div> <!-- end col -->
 
-      <form id="enter-form"><a class="link submit" href="javascript:send_input();">submit</a>
-      <input type="checkbox" id="enter" name="enter" value="enter" > <label for="enter"> Enter to submit </label>
-      </form>
 
-  </div> <!-- end col -->
+      <div class="col-sm-3 col-sm-offset-1">
 
-  <div class="col-sm-4">
-    <div class="panel what-is">
-      <p>Pyforth is a micro implementation of Forth, written in Python.</p>
-    </div>
-    <div class="panel help">
-      <p>Type Forth code in the text area, and then submit it to interpret.</p>
-      <p>Your input and the output of your code will show up above the text area.</p>
-    </div>
-  </div> <!-- end col -->
+            <div class="panel what-is">
+              <p>Pyforth is a micro implementation of Forth, written in Python.</p>
+            </div>
+            <div class="panel help">
+              <p>Type Forth code in the text area, and then submit it to interpret.</p>
+              <p>Your input and the output of your code will show up above the text area.</p>
+            </div>
+
+      </div> <!-- end col -->
 
 </div> <!-- end row -->
 
@@ -119,6 +123,8 @@
 <script type='text/javascript'>
 $(document).ready(function() {
 
+    input_lines = [];
+
     $('input[name=enter]').change(function () {
         enter = ($('#enter').is(":checked"))
         console.log(enter);
@@ -127,7 +133,7 @@ $(document).ready(function() {
     $("#input-stream").keypress(function (e) {
         if (enter == true && e.which == 13 && !e.shiftKey) {
             // $(this).closest("form").submit();
-            send_input();
+            sendinput();
             e.preventDefault();
             return false;
         }
@@ -156,23 +162,37 @@ $(document).ready(function() {
 });
 
 
-function send_input() {
-    var input_stream = $("#input-stream").val();
-    $.post('/addinput', {
-        input_stream: input_stream
+function sendinput() {
+    var new_input_line = $("#input-stream").val();
+    input_lines.push(new_input_line);
+    $.post('/sendinput', {
+        input_lines: input_lines
     }).done(function(added) {
         console.log(added)
-        console.log('input: ' + added['new_input']);
-        console.log('output : ', added['output']);
-        $('#logbox').append("<br>");
-        $('#logbox').append(added['new_input']);
-        if (added['output'] != "") {
-          $('#logbox').append("<br>");
-          $('#logbox').append(added['output']);
-        }
+        var input_lines = added['input_lines'];
+        var output_lines = added['output_lines'];
+        // use Math.max just in case *somehow* one is longer
+        var len = Math.max(input_lines.length, output_lines.length);
+        console.log('len: ', len);
+        // reset log box
+        //S$('#logbox').text('testing');
+        var string_text = ""
+        var i = 0;
+        while (i<=len) {
+          console.log(i);
+          if (input_lines[i]) {
+            string_text = string_text + input_lines[i] + '<br/>';
+          }
+          if (output_lines[i]) {
+            string_text = string_text +  output_lines[i] + '<br/>';
+          }
+          i++;
+        };
+        console.log('string text: ', string_text)
+        $('#logbox').html(string_text);
         $('#input-stream').val('');
     }).fail(function() {
-        console.log(input_stream);
+        console.log(input_lines);
         $('#message-area').text('error - please try again').fadeOut(2000);
     });
 }

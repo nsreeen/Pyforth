@@ -460,10 +460,26 @@ def get_file_text(filename):
     filetext.close()
     return filetext_joined
 
-def webrepl(input_lines, consistent_dictionary, consistent_stack):
-    set_input_stream(input_lines)
-    QUIT()
-    return dictionary, stack, output
+def reset_output():
+    global output
+    output = ""
+
+def reset_stacks():
+    global stack
+    stack = []
+    global Rstack
+    Rstack = []
+
+
+def webrepl(input_lines):
+    output_lines = []
+    reset_stacks()
+    for line in input_lines:
+        set_input_stream(line)
+        QUIT()
+        output_lines.append(output)
+        reset_output()
+    return output_lines
 
 if __name__ == "__main__":
     input_stream = " 1 2 3 >R >R R> .S "
