@@ -4,9 +4,9 @@ from pyforth.pyforth import webrepl
 from .forms import ModeForm, CompileForm
 import re
 
-cumulative_log = []
-dictionary = {}
-stack = []
+#cumulative_log = []
+#dictionary = {}
+#stack = []
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -15,17 +15,17 @@ def index():
 
 @app.route('/addinput', methods=['POST'])
 def addinput():
-    global dictionary
-    global stack
+    #global dictionary
+    #global stack
 
     new_input = request.form['input_stream']
 
     new_input = " ".join(new_input.split())
     print(" new_input is ", new_input)
 
-    dictionary, stack, output = webrepl(new_input, dictionary, stack)
+    dictionary, stack, output = webrepl(new_input, {}, [])
     print(" output is ", output)
     print(" stack is ", stack)
-    cumulative_log.append(new_input)
-    cumulative_log.append(output)
+    #cumulative_log.append(new_input)
+    #cumulative_log.append(output)
     return jsonify(new_input=new_input, output=output)

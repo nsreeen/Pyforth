@@ -14,6 +14,7 @@
            .header {
              margin-top: 25px;
              margin-bottom: 45px;
+             margin-bottom: 15px;
            }
            body {
              font-family: 'Source Code Pro', monospace;
@@ -22,6 +23,7 @@
              margin-top: 10px;
              width: 100%;
              min-height: 100px;
+             height: 30%;
            }
            li {
              list-style: none;
@@ -59,6 +61,12 @@
       <li><a href="https://github.com/Nasreen123/Pyforth/tree/more-pythonic">view on Github</a></li>
       <li class="link" id="show-what-is">what is Pyforth?</li>
       <li class="link" id="show-help">help</li>
+    <div class="col-sm-6 col-sm-offset-3">
+      <h1>Pyforth</h1>
+    </div>
+    <div class="col-sm-3">
+      <li>View on Github</li>
+      <li>What is Pyforth?</li>
     </div>
   </div>
 
@@ -66,11 +74,20 @@
   <div class="row">
 
   <div class="col-sm-6 col-sm-offset-1">
+
+  <div class="row"><div class="col-sm-6 col-sm-offset-3">
+
     <div id="logbox">
       {% for line in log_text %}
         <p> {{ line }} </p>
       {% endfor %}
     </div>
+
+  </div></div>
+
+  <span id="message-area"></span>
+
+  <div class="row"><div class="col-sm-6 col-sm-offset-3">
 
       <span id="message-area"></span>
       <textarea id="input-stream"></textarea> <br>
