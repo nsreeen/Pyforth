@@ -1,4 +1,4 @@
-
+import sys
 
 input_stream = ""
 output = ""
@@ -217,11 +217,6 @@ def JUMP():
     else:
         dictionary[W]()
 
-def BYE():
-    if running:
-        global running
-        running = False
-
 ######################## BRANCHING ######################
 def ADD1():
     PUSH(1)
@@ -432,7 +427,7 @@ words_to_add_to_dictionary = [('.S', printS), ('DUP', DUP), ('*', MUL),
 ('@', FETCH), ('OVER', OVER), ('SWAP', SWAP), ('ROT', ROT), ('DROP', DROP),
 ('NIP', NIP), ('TUCK', TUCK), ('2DUP', TWODUP), ('MOD', MOD), ('R0', RCLEAR),
 ('>R', toR), ('R>', fromR), ('R@', Rtop), ('.S', printS), ('DO', DO),
-('LOOP', LOOP), ('I', I), ('J', J), ('BYE', BYE), ('<', less_than),
+('LOOP', LOOP), ('I', I), ('J', J), ('<', less_than),
 ('>', greater_than)]
 
 for word in words_to_add_to_dictionary:
@@ -482,7 +477,6 @@ def webrepl(input_lines):
     return output_lines
 
 if __name__ == "__main__":
-    input_stream = " 1 2 3 >R >R R> .S "
 
     if len(sys.argv) > 1:
         filetext = get_file_text(sys.argv[1])
