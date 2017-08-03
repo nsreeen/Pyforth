@@ -1,5 +1,7 @@
-import sys, io
-from contextlib import redirect_stdout
+
+
+input_stream = ""
+output = ""
 
 ################### PARAM STACK ###################
 stack = [] # using stack[-1] instead of a stack pointer
@@ -51,8 +53,8 @@ def HERE():
 def incrementLATEST():
     global LATEST
     HERE()
-    print('HERE is ', stack[0])
     LATEST = POP()
+    print('LATEST is ', LATEST)
 
 def update_PC(new_PC):
     global PC
@@ -146,6 +148,7 @@ def NUMBER():
 
 def EXECUTE():
     update_W(POP())
+    print('\n IN EXECUTE. W is ', W, ' points to WH with CP: ', dictionary[W].code_pointer)
     dictionary[W].code_pointer()
 
 def set_interpret():
@@ -197,6 +200,7 @@ def DOLITERAL():
 def EXIT():
     print('in exit, PC is ', PC)
     update_PC(RPOP()) # set PC to top of return stack
+    print('in exit, PC is NOW', PC)
     if PC != None: # if we are returning to a composite word thread
         NEXT() # next word takes us to the next word in the composite word thread
 
@@ -207,10 +211,11 @@ def ENTER():
     NEXT()
 
 def NEXT():
-    print('in NEXT, PC is ', PC, ' W is ', W)
+    print('\n in NEXT, PC is ', PC, ' W is ', W)
     if PC != None:
         update_W(PC)
         update_PC(PC + 1)
+        print('\n PC not None so now: PC is ', PC, ' W is ', W, ' calling jump')
         JUMP()
 
 def JUMP():
@@ -220,9 +225,16 @@ def JUMP():
 
     # if it's a word header we have to execute the code pointer
     if isinstance(dictionary[W], WordHeader):
+        print('in JUMP, will execute: ', dictionary[W].code_pointer)
         dictionary[W].code_pointer()
     else:
+        print('in JUMP, will execute: ', dictionary[W])
         dictionary[W]()
+
+def BYE():
+    if running:
+        global running
+        running = False
 
 ######################## BRANCHING ######################
 def ADD1():
@@ -257,20 +269,22 @@ def THEN():
 
 def QBRANCH():
     print('in QBRANCH, PC is ', PC)
-    printS()
+    print('stack: ', stack)
     flag = POP()
+    print('flag: ', flag)
     if flag == 0: # condition is FALSE
         update_PC(PC+dictionary[PC])
         print('PC changed to : ', PC, ' which has ', dictionary[PC])
     else: # flag != 0, condition is TRUE
         update_PC(PC+1) # avoid cell with number in it
         print('PC changed to : ', PC, ' which has ', dictionary[PC])
+    print('end of QBRANCH, PC now: ', PC)
     NEXT()
 
 def BRANCH():
     print('in BRANCH, PC and W are: ', PC, W)
-    printS()
     update_PC(PC+dictionary[PC])
+    print('PC is now: ', PC)
     NEXT()
 
 def DO():
@@ -359,6 +373,24 @@ def EQUALS():
         PUSH(0)
     NEXT()
 
+def less_than(): # ( a b - bool )  bool = a<b
+    b = POP()
+    a = POP()
+    if a < b:
+        PUSH(1)
+    else:
+        PUSH(0)
+    NEXT()
+
+def greater_than(): # ( a b - bool )  bool = a>b
+    b = POP()
+    a = POP()
+    if a > b:
+        PUSH(1)
+    else:
+        PUSH(0)
+    NEXT()
+
 def ROT(): # ( c b a - b a c )
     a = POP()
     b = POP()
@@ -396,13 +428,11 @@ def MOD(): # ( a b - a%b )
     PUSH(a%b)
 #################### PRINTING AND DEBUGGING ###################
 def printS():
-    #global output
     stri = ""
     stri = stri + "<" + str(len(stack)) + "> "
     for item in stack:
         stri = stri + str(item) + " "
-    #output += stri
-    print(stri)
+    add_output(stri)
     NEXT()
 
 def printD(last_section_only=0):
@@ -432,7 +462,8 @@ words_to_add_to_dictionary = [('.S', printS), ('DUP', DUP), ('*', MUL),
 ('@', FETCH), ('OVER', OVER), ('SWAP', SWAP), ('ROT', ROT), ('DROP', DROP),
 ('NIP', NIP), ('TUCK', TUCK), ('2DUP', TWODUP), ('MOD', MOD), ('R0', RCLEAR),
 ('>R', toR), ('R>', fromR), ('R@', Rtop), ('.S', printS), ('DO', DO),
-('LOOP', LOOP), ('I', I), ('J', J)]
+('LOOP', LOOP), ('I', I), ('J', J), ('BYE', BYE), ('<', less_than),
+('>', greater_than)]
 
 for word in words_to_add_to_dictionary:
     if len(word) > 2:
@@ -445,7 +476,36 @@ for word in words_to_add_to_dictionary:
 
 #########################################
 
+def add_output(new_output):
+    global output
+    output = output + new_output
+
+def set_input_stream(new_input):
+    global input_stream
+    input_stream = new_input
+
+def get_file_text(filename):
+    filetext = open(filename, 'r')
+    filetext_joined = " ".join(filetext)
+    filetext.close()
+    return filetext_joined
+
+def webrepl(input_lines, consistent_dictionary, consistent_stack):
+    set_input_stream(input_line)
+    QUIT()
+    return dictionary, stack, output
 
 if __name__ == "__main__":
-    input_stream = " : TESTLOOP DO I .S LOOP ; 5 1 .S TESTLOOP "
-    QUIT()
+    input_stream = " 1 2 3 >R >R R> .S "
+
+    if len(sys.argv) > 1:
+        filetext = get_file_text(sys.argv[1])
+        set_input_stream(filetext)
+
+    running = True
+    while running:
+        if input_stream:
+            output = ""
+            QUIT()
+            print("".join(output))
+        input_stream = input()
