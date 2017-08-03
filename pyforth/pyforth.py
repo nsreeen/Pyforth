@@ -491,7 +491,7 @@ def get_file_text(filename):
     return filetext_joined
 
 def webrepl(input_lines, consistent_dictionary, consistent_stack):
-    set_input_stream(input_line)
+    set_input_stream(input_lines)
     QUIT()
     return dictionary, stack, output
 
