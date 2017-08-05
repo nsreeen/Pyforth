@@ -474,7 +474,10 @@ def webrepl(input_lines):
         set_input_stream(line)
         QUIT()
         output_lines.append(output)
-        stack_lines.append(" ".join([str(x) for x in stack]))
+        stack_copy = [str(x) for x in stack]
+        stack_copy[-1] = '<span class="red">' + stack_copy[-1] + '</span>'
+        stack_representation = " ".join(stack_copy)
+        stack_lines.append(stack_representation)
         reset_output()
     return output_lines, stack_lines
 
