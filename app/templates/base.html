@@ -19,6 +19,7 @@
            }
            body {
              font-family: 'Source Code Pro', monospace;
+             line-height: 1.2;
            }
            textarea {
              margin-top: 10px;
@@ -56,6 +57,10 @@
            }
            .title {
              text-align: center;
+           }
+           #stack {
+             float: right;
+             margin-right: 50px;
            }
            </style>
     </head>
@@ -153,6 +158,44 @@ function sendinput() {
         };
         console.log('string text: ', string_text)
         $('#logbox').html(string_text);
+        $('#input-stream').val('');
+    }).fail(function() {
+        console.log(input_lines);
+        $('#message-area').text('error - please try again').fadeOut(2000);
+    });
+}
+
+function sendinputVisualizer() {
+    var new_input_line = $("#input-stream").val();
+    input_lines.push(new_input_line);
+    $.post('/sendinputVisualizer', {
+        input_lines: input_lines
+    }).done(function(added) {
+        console.log(added)
+        var input_lines = added['input_lines'];
+        var output_lines = added['output_lines'];
+        var stack_lines = added['stack_lines'];
+
+        // maybe it would be better to have an array [in, out, stack] for each line?
+
+        var stack_string = ""
+        for (i=0; i<stack_lines.length; i++) {
+          stack_string = stack_string + stack_lines[i] + '<br/>';
+        }
+        $('#stack').html(stack_string);
+
+        var input_string = ""
+        for (i=0; i<input_lines.length; i++) {
+          input_string = input_string + input_lines[i] + '<br/>';
+        }
+        $('#logbox').html(input_string);
+
+        var output_string = ""
+        for (i=0; i<output_lines.length; i++) {
+          output_string = output_string + output_lines[i] + '<br/>';
+        }
+        $('#output').html(output_string);
+
         $('#input-stream').val('');
     }).fail(function() {
         console.log(input_lines);

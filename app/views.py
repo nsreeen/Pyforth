@@ -20,16 +20,15 @@ def visualizer():
 
 @app.route('/sendinput', methods=['POST'])
 def sendinput():
-    print('IN SEND INPUT')
-    #global dictionary
-    #global stack
     inp = request.form
     input_lines = inp.getlist('input_lines[]')
-    #all_input =str(request.form['input_lines']) # <-------------- because its an array now?
-    #print(" all_input is ", all_input)
-    #all_input = " ".join(input_lines) #.split())
-    print(" input_lines is ", input_lines)
-
-    output_lines = webrepl(input_lines)
-    print(" output_lines is ", output_lines)
+    output_lines, _ = webrepl(input_lines)
     return jsonify(input_lines=input_lines, output_lines=output_lines)
+
+@app.route('/sendinputVisualizer', methods=['POST'])
+def sendinputVisualizer():
+    inp = request.form
+    input_lines = inp.getlist('input_lines[]')
+    output_lines, stack_lines = webrepl(input_lines)
+    print(input_lines, output_lines, stack_lines)
+    return jsonify(input_lines=input_lines, output_lines=output_lines, stack_lines=stack_lines)
