@@ -468,13 +468,15 @@ def reset_stacks():
 
 def webrepl(input_lines):
     output_lines = []
+    stack_lines = []
     reset_stacks()
     for line in input_lines:
         set_input_stream(line)
         QUIT()
         output_lines.append(output)
+        stack_lines.append(" ".join([str(x) for x in stack]))
         reset_output()
-    return output_lines
+    return output_lines, stack_lines
 
 if __name__ == "__main__":
 
