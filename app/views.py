@@ -13,6 +13,11 @@ def index():
     form = CompileForm()
     return render_template('index.html', form=form, log_text='')
 
+@app.route('/visualizer', methods=['GET', 'POST'])
+def visualizer():
+    form = CompileForm()
+    return render_template('visualizer.html', form=form, log_text='')
+
 @app.route('/sendinput', methods=['POST'])
 def sendinput():
     print('IN SEND INPUT')

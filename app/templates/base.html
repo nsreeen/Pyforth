@@ -1,0 +1,170 @@
+<html>
+    <head>
+        <title>Pyforth</title>
+            <script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+           <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+           <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro|Source+Sans+Pro:600" rel="stylesheet">
+           <style>
+           h1 {
+             /*font-family: 'Source Sans Pro', sans-serif;*/
+             font-family: 'Source Code Pro', monospace;
+             font-size: 3em;
+             padding: 0;
+             display: inline;
+           }
+           .header {
+             margin-top: 50px;
+             margin-bottom: 30px;
+             height: 50px;
+           }
+           body {
+             font-family: 'Source Code Pro', monospace;
+           }
+           textarea {
+             margin-top: 10px;
+             width: 100%;
+             min-height: 100px;
+             height: 30%;
+           }
+           li {
+             list-style: none;
+             float:right;
+             margin-right: 15px;
+             margin-top: 5px;
+           }
+           .panel {
+             display: none;
+           }
+           a {
+             color: black;
+           }
+           .submit {
+             float: right;
+             padding: 3px;
+
+           }
+           .link:hover, a:hover {
+             text-decoration: underline;
+             color: Teal;
+           }
+           .link {
+             float: right;
+             height: 50px;
+           }
+           .header-link {
+             margin-right: 50px;
+           }
+           .title {
+             text-align: center;
+           }
+           </style>
+    </head>
+<body>
+<div id="body" class="container-fluid">
+
+  <div class="header row">
+    <div class="col-sm-3 col-sm-offset-1">
+      <h1>Pyforth</h1>
+    </div>
+    <div class="col-sm-6 col-sm-offset-1">
+      <span class="header-link link"><a href="https://github.com/Nasreen123/Pyforth/tree/more-pythonic">view on Github</a></span>
+      <span class="header-link link" id="show-what-is">what is Pyforth?</span>
+      <span class="header-link link" id="show-help">help</span>
+      <span class="header-link link"><a href="/visualizer">visualizer</a></span>
+    </div>
+  </div>  <!-- end header -->
+
+
+
+  {% block content %} {% endblock %}
+
+
+
+</div> <!-- end container -->
+
+
+<script type='text/javascript'>
+$(document).ready(function() {
+
+    input_lines = [];
+
+    $('input[name=enter]').change(function () {
+        enter = ($('#enter').is(":checked"))
+        console.log(enter);
+    });
+
+    $("#input-stream").keypress(function (e) {
+        if (enter == true && e.which == 13 && !e.shiftKey) {
+            // $(this).closest("form").submit();
+            sendinput();
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    $("#show-help").click(function () {
+        console.log("logged")
+        if ( $(".help").css("display") == "none" ) {
+          $(".what-is").fadeOut(100);
+          $(".help").delay(100).fadeIn(); //css("display", "block");
+        } else {
+          $(".help").fadeOut(100);
+        }
+    })
+
+    $("#show-what-is").click(function () {
+        console.log("logged")
+        if ( $(".what-is").css("display") == "none" ) {
+          $(".help").fadeOut(100);
+          $(".what-is").delay(100).fadeIn(); //css("display", "block");
+        } else {
+          $(".what-is").fadeOut(100);
+        }
+    })
+
+});
+
+
+function sendinput() {
+    var new_input_line = $("#input-stream").val();
+    input_lines.push(new_input_line);
+    $.post('/sendinput', {
+        input_lines: input_lines
+    }).done(function(added) {
+        console.log(added)
+        var input_lines = added['input_lines'];
+        var output_lines = added['output_lines'];
+        // use Math.max just in case *somehow* one is longer
+        var len = Math.max(input_lines.length, output_lines.length);
+        console.log('len: ', len);
+        // reset log box
+        //S$('#logbox').text('testing');
+        var string_text = ""
+        var i = 0;
+        while (i<=len) {
+          console.log(i);
+          if (input_lines[i]) {
+            string_text = string_text + input_lines[i] + '<br/>';
+          }
+          if (output_lines[i]) {
+            string_text = string_text +  output_lines[i] + '<br/>';
+          }
+          i++;
+        };
+        console.log('string text: ', string_text)
+        $('#logbox').html(string_text);
+        $('#input-stream').val('');
+    }).fail(function() {
+        console.log(input_lines);
+        $('#message-area').text('error - please try again').fadeOut(2000);
+    });
+}
+
+
+</script>
+
+
+
+
+</body>
+</html>

@@ -2,27 +2,41 @@
 
 {% block content %}
 
+  <div class="row">
+      <div class="col-sm-3">
+        <p class="title">stack</p>
+      </div>
+      <div class="col-sm-3">
+        <p class="title">input</p>
+      </div>
+      <div class="col-sm-3">
+        <p class="title">output</p>
+      </div>
+  </div> <!-- end row -->
 
   <div class="row">
 
-      <div class="col-sm-4 col-sm-offset-2">
+    <div class="col-sm-3">
+          <div id="stack">
+          </div>
+     </div> <!-- end col -->
 
+      <div class="col-sm-3">
             <div id="logbox">
             </div>
-
             <span id="message-area"></span>
-
             <textarea id="input-stream"></textarea> <br>
-
             <form id="enter-form"><a class="link submit" href="javascript:sendinput();"><b>submit</b></a>
             <input type="checkbox" id="enter" name="enter" value="enter" > <label for="enter"> Enter to submit </label>
             </form>
-
        </div> <!-- end col -->
 
+       <div class="col-sm-3">
+             <div id="output">
+             </div>
+        </div> <!-- end col -->
 
-      <div class="col-sm-3 col-sm-offset-1">
-
+      <div class="col-sm-3">
             <div class="panel what-is">
               <p>Pyforth is a micro implementation of Forth, written in Python.</p>
             </div>
@@ -30,7 +44,6 @@
               <p>Type Forth code in the text area, and then submit it to interpret.</p>
               <p>Your input and the output of your code will show up above the text area.</p>
             </div>
-
       </div> <!-- end col -->
 
 </div> <!-- end row -->
