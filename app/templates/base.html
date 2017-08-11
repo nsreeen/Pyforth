@@ -35,6 +35,8 @@
            }
            .panel {
              display: none;
+             border: 1px solid grey;
+             padding: 10px;
            }
            a {
              color: black;
@@ -58,12 +60,21 @@
            .title {
              text-align: center;
            }
+           .left {
+             text-align: left;
+           }
+           .right {
+             text-align: right;
+           }
            #stack {
              float: right;
              margin-right: 50px;
            }
            .red {
              color: red;
+           }
+           .help-panel {
+             background-color: grey;
            }
            </style>
     </head>
@@ -72,12 +83,12 @@
 
   <div class="header row">
     <div class="col-sm-3 col-sm-offset-1">
-      <h1>Pyforth</h1>
+      <h1><a href="/visualizer">Pyforth</a></h1>
     </div>
     <div class="col-sm-6 col-sm-offset-1">
-      <span class="header-link link"><a href="https://github.com/Nasreen123/Pyforth/tree/more-pythonic">view on Github</a></span>
       <span class="header-link link" id="show-what-is">what is Pyforth?</span>
       <span class="header-link link" id="show-help">help</span>
+      <span class="header-link link"><a href="https://github.com/Nasreen123/Pyforth">view on Github</a></span>
       <span class="header-link link"><a href="/visualizer">visualizer</a></span>
     </div>
   </div>  <!-- end header -->
@@ -86,6 +97,18 @@
 
   {% block content %} {% endblock %}
 
+  <div class="col-sm-3">
+        <div class="panel what-is">
+          <p>Pyforth is a micro implementation of Forth, written in Python.</p>
+        </div>
+        <div class="panel help">
+          <p>Type Forth code in the text area, and then 'enter' it to interpret.</p>
+          <p>Your input and the output of your code will show up above the text area.</p>
+          <p>Use the <a href="/visualizer">visualizer</a> to visualize the stack.</p>
+        </div>
+  </div> <!-- end col -->
+
+  </div> <!-- end row -->
 
 
 </div> <!-- end container -->
