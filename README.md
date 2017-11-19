@@ -3,7 +3,7 @@
 A mini Forth implemented in Python. To visualize the stack go to: https://pyforth.herokuapp.com/visualizer
 
 
-#terminal tool usage:
+# Terminal tool usage: #
 
 To run the REPL:
 1) You must have python 3.5 installed
@@ -15,7 +15,7 @@ To interpret a Forth file and run the REPL:
 2) Type ```python pyforth/pyforth.py <filename>```
 
 
-#builtin words implemented so far:
+# Builtin words implemented so far: #
 
 <br> ```.S``` ```DUP``` ```*``` ```+``` ```-``` ```=``` ```<``` ```>```
 <br> ```OVER``` ```SWAP``` ```ROT``` ```DROP``` ```NIP``` ```TUCK``` ```2DUP``` ```MOD```
