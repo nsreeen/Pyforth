@@ -3,6 +3,7 @@
 A mini Forth implemented in Python. To visualize the stack go to: https://pyforth.herokuapp.com/visualizer
 
 <br>
+
 ## Terminal tool usage: ##
 
 To run the REPL:
@@ -15,6 +16,7 @@ To interpret a Forth file and run the REPL:
 2) Type ```python pyforth/pyforth.py <filename>```
 
 <br>
+
 ## Builtin words implemented so far: ##
 
 <br> ```.S``` ```DUP``` ```*``` ```+``` ```-``` ```=``` ```<``` ```>```
